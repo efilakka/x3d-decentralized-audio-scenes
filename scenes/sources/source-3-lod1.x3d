@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<X3D profile="Full" version="4.0">
+  <Scene>
+    <Transform DEF="Sculpture3" translation="-600 17 600">
+      <Transform translation="0 -117 0">
+        <Shape>
+          <Appearance>
+            <Material diffuseColor="0.18 0.16 0.2" emissiveColor="0.03 0.03 0.04" shininess="0.2" />
+          </Appearance>
+          <Box size="220 24 220" />
+        </Shape>
+      </Transform>
+      <Shape>
+        <Appearance DEF="Sculpture3Appearance">
+          <Material diffuseColor="0.2 1 0.2" emissiveColor="0.08 0.28 0.08" shininess="0.35" specularColor="0.4 1 0.4" />
+        </Appearance>
+        <Box size="200 200 200" />
+      </Shape>
+      <Billboard axisOfRotation="0 1 0">
+        <Transform translation="0 200 0" rotation="1 0 0 -0.5" scale="100 100 100">
+          <Shape>
+            <Appearance>
+              <Material diffuseColor="0.2 1 0.2" emissiveColor="0.12 0.4 0.12" />
+            </Appearance>
+            <Text string="&quot;Tales of Samwise Gamgee&quot;" solid="false">
+              <FontStyle family="&quot;SERIF&quot;" style="BOLD" size="1" horizontal="true"
+                justify="&quot;BEGIN&quot;" leftToRight="true" spacing="1" topToBottom="true" />
+            </Text>
+          </Shape>
+        </Transform>
+      </Billboard>
+    </Transform>
+  </Scene>
+</X3D>

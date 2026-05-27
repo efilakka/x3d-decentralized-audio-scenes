@@ -1,0 +1,551 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 4.0//EN" "https://www.web3d.org/specifications/x3d-4.0.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+	<meta name="reference" content="SplitChannels.js" />
+	<meta name="TODO"
+		content="write an XSLT conversion script X3dAudioGraphToJavaScript.xslt to produce comparable JavaScript source" />
+	<meta name="TODO"
+		content="write an XSLT conversion script X3dAudioGraphToSvgAudioGraph.xslt to produce a helpful diagram" />
+
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="author" content="medialab.teicrete.gr" />
+	<meta property="og:title" content="Spatial Sound in X3DOM with Web Audio API" />
+	<meta property="og:image" content="http://medialab.teicrete.gr/minipages/x3domAudio/spatial.png" />
+	<meta property="og:description"
+		content="This work presents an innovative solution of the spatial sound in X3DOM framework, that based on a combinational methodology. Specifically, we suggested the enrichment of X3DOM with spatial sound features, using both the X3D sound nodes and the structure of Web Audio API." />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="Spatial Sound in X3DOM with Web Audio API" />
+	<meta name="twitter:description"
+		content="This work presents an innovative solution of the spatial sound in X3DOM framework, that based on a combinational methodology. Specifically, we suggested the enrichment of X3DOM with spatial sound features, using both the X3D sound nodes and the structure of Web Audio API." />
+	<meta name="twitter:image" content="http://medialab.teicrete.gr/minipages/x3domAudio/spatial.png" />
+
+	<title>X3DOM AUDIO</title>
+
+	<!-- Bootstrap Core CSS -->
+	<link href="css/bootstrap.min.css" rel="stylesheet" />
+
+	<!-- Custom CSS -->
+	<link href="css/modern-business.css" rel="stylesheet" />
+	<script type='text/javascript' src='x3dom_dev/x3dom.js'></script>
+	<link rel='stylesheet' type='text/css' href='x3dom_dev/x3dom.css' />
+
+	<style type="text/css">
+		* {
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			cursor: default;
+		}
+
+		body {
+			font: 13px/18px Arial, sans-serif;
+		}
+
+		a {
+			color: inherit;
+			cursor: pointer;
+		}
+
+		ul {
+			padding: 0 0 0 20px;
+		}
+
+		h1 {
+			font: bold italic 30px/30px Georgia;
+			text-align: center;
+		}
+
+		h2 {
+			font: bold italic 17px/17px Georgia;
+			padding-top: 10px;
+		}
+	</style>
+
+
+	<script type='text/javascript' src='SpatialSound.js'></script>
+	<script type='text/javascript' src='dist/vis.js'></script>
+
+	<!-- library vis.js -->
+	<style type="text/css">
+		#mynetwork {
+			width: 800px;
+			height: 500px;
+			border: 1px solid #000;
+			display: inline-block;
+		}
+	</style>
+
+
+</head>
+
+<body>
+	<!-- Navigation -->
+	<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+		<div class="container">
+			<!-- Brand and toggle get grouped for better mobile display -->
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle" data-toggle="collapse"
+					data-target="#bs-example-navbar-collapse-1">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="index.html">Spatial Sound</a>
+			</div>
+			<!-- Collect the nav links, forms, and other content for toggling -->
+			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+				<ul class="nav navbar-nav navbar-right">
+
+					<li class="active">
+						<a href="SplitChannels.xhtml">Split Channels</a>
+					</li>
+					<li>
+						<a href="SpatialSoundFilter.xhtml">Filters</a>
+					</li>
+					<li>
+						<a href="SpatialAudioCameraAnimation.xhtml">Spatial Audio Camera Animation</a>
+					</li>
+					<li>
+						<a href="nodes.html">Published Work</a>
+					</li>
+				</ul>
+			</div>
+			<!-- /.navbar-collapse -->
+		</div>
+		<!-- /.container -->
+	</nav>
+	<!-- Page Content -->
+	<div class="container">
+
+		<!-- Page Heading/Breadcrumbs -->
+		<div class="row">
+			<div class="col-lg-12">
+				<h1>X3D Split Channels - X3D Node Graph</h1>
+
+				<ol class="breadcrumb">
+					<li><a href="index.html">Home</a>
+					</li>
+					<li class="active">Split Channels</li>
+				</ol>
+			</div>
+		</div>
+		<!-- /.row -->
+
+		<!-- Image Header -->
+		<div class="row">
+
+			<div class="container">
+
+				<X3D profile='Full' version='4.0' xmlns:xsd='http://www.w3.org/2001/XMLSchema-instance'
+					xsd:noNamespaceSchemaLocation='https://www.web3d.org/specifications/x3d-4.0.xsd'
+					style="float:left; border: 1px solid #000;">
+					<Scene>
+						<NavigationInfo id='NAV' headlight='true' type='"NONE"' />
+						<Background skyColor='0.200 0.200 0.210' />
+						<Viewpoint
+							description='Viewpoint is like camera, prepositioned in locations (and directions) of interest. In this example the camera is the "ears of the user". 
+						So, if the trackCurrentView field from ListenerPointSource is true then position and orientation matches the users current view'
+							position='0.0 500.0 600.0' orientation='1 0 0 -0.5' fieldOfView='0.7854'
+							retainUserOffsets='true' />
+
+
+
+						<Transform translation="100 400 400" rotation='0 0 1 0'>
+							<Transform id='pR' translation="0 40 0" rotation='1 0 0 -0.5'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0 1 0' specularColor='0.01 0.01 0.01'
+											emissiveColor='0.0 0.0 0.0' />
+									</Appearance>
+									<Box size='10 80 0.01' />
+								</Shape>
+							</Transform>
+							<Transform translation="-2.7 37 0" rotation='1 0 0 -0.5'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0 1 0' specularColor='0.01 0.01 0.01'
+											emissiveColor='0.0 0.0 0.0' />
+										<ImageTexture containerField='texture'
+											url='"images/line.png" "https://x3dgraphics.com/examples/X3dForAdvancedModeling/AudioSpatialSound/images/line.png" "https://medialab.hmu.gr/minipages/x3domAudio/images/line.png"' />
+									</Appearance>
+									<Box size='25 83 0.01' />
+								</Shape>
+							</Transform>
+
+
+							<Transform translation='0 -10 0' rotation='1 0 0 -0.5' scale="10 10 10">
+								<Shape>
+									<Appearance>
+										<Material ambientIntensity="0.0933" diffuseColor="1 1 1" shininess="0.51"
+											specularColor="0.46 0.46 0.46" emissiveColor='0.0 0.0 0.0' />
+									</Appearance>
+									<Text string='"Right Channel Volume"' solid="false">
+										<FontStyle family='"SERIF"' style="BOLD" size="1" horizontal="true"
+											justify='"BEGIN"' leftToRight="true" spacing="1" topToBottom="true" />
+									</Text>
+								</Shape>
+							</Transform>
+
+						</Transform>
+
+
+
+						<Transform translation="-100 400 400" rotation='0 0 1 0'>
+							<Transform id='pL' translation="0 40 0" rotation='1 0 0 -0.5'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0 1 0' specularColor='0.01 0.01 0.01'
+											emissiveColor='0.0 0.0 0.0' />
+									</Appearance>
+									<Box size='10 80 0.01' />
+								</Shape>
+							</Transform>
+
+							<Transform translation="13.2 37 0" rotation='1 0 0 -0.5'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0 1 0' specularColor='0.01 0.01 0.01'
+											emissiveColor='0.0 0.0 0.0' />
+										<ImageTexture containerField='texture'
+											url='"images/line.png" "https://x3dgraphics.com/examples/X3dForAdvancedModeling/AudioSpatialSound/images/line.png" "https://medialab.hmu.gr/minipages/x3domAudio/images/line.png"' />
+									</Appearance>
+									<Box size='25 83 0.01' />
+								</Shape>
+							</Transform>
+
+							<Transform translation='0 -10 0' rotation='1 0 0 -0.5' scale="10 10 10">
+								<Shape>
+									<Appearance>
+										<Material ambientIntensity="0.0933" diffuseColor="1 1 1" shininess="0.51"
+											specularColor="0.46 0.46 0.46" emissiveColor='0.0 0.0 0.0' />
+									</Appearance>
+									<Text string='"Left Channel Volume"' solid="false">
+										<FontStyle family='"SERIF"' style="BOLD" size="1" horizontal="true"
+											justify='"BEGIN"' leftToRight="true" spacing="1" topToBottom="true" />
+									</Text>
+								</Shape>
+							</Transform>
+
+
+						</Transform>
+
+
+						<Transform>
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.1 0.1 0.1' shininess='0.8' specularColor='0.5 0.6 0.7' />
+								</Appearance>
+								<Box size='1500 10 500' />
+							</Shape>
+						</Transform>
+
+						<Transform id="Transform3" translation="0 100 0" rotation='1 0 0 -0.5'>
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.3 1 0.3' specularColor='0.01 0.01 0.01'
+										emissiveColor='0.0 0.0 0.0' />
+									<ImageTexture containerField='texture'
+										url='"images/loudspeaker.png" "https://x3dgraphics.com/examples/X3dForAdvancedModeling/AudioSpatialSound/images/loudspeaker.png" "https://medialab.hmu.gr/minipages/x3domAudio/images/loudspeaker.png"' />
+								</Appearance>
+								<Box size='100 100 0.001' />
+							</Shape>
+						</Transform>
+
+
+						<AudioDestination channelInterpretation='speakers'>
+							
+							<ListenerPointSource id='ListenerPointSource' trackCurrentView='true'>
+							</ListenerPointSource>
+
+							<Gain description="The Gain node of AudioDestination: Gain3 Graph">
+								<ChannelSplitter DEF="splitter" channelCountMode='explicit'>
+									<Sound location='0 1.6 0'>
+
+										<AudioClip id='AudioClip' description='AudioClip is the Sound Source'
+											loop='true'
+											url='"sound/violin.mp3" "sound/violin.wav"  "https://x3dgraphics.com/examples/X3dForAdvancedModeling/AudioSpatialSound/sound/violin.mp3" "https://medialab.hmu.gr/minipages/x3domAudio/sound/violin.mp3"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1'>
+										</AudioClip>
+
+									</Sound>
+								</ChannelSplitter>
+
+								<ChannelMerger>
+									<ChannelSelector channelSelection='0'>
+										<Gain description="The Gain node of ChannelSelector0: Gain0 Graph">
+											<ChannelSplitter USE="splitter" />
+										</Gain>
+									</ChannelSelector>
+
+									<ChannelSelector channelSelection='1'>
+										<Gain description="The Gain node of ChannelSelector1: Gain1 Graph">
+											<ChannelSplitter USE="splitter" />
+										</Gain>
+									</ChannelSelector>
+								</ChannelMerger>
+							</Gain>
+						</AudioDestination>
+
+
+
+
+					</Scene>
+				</X3D>
+
+
+				<div id="mynetwork"></div>
+			</div>
+		</div>
+
+		<!-- /.row -->
+		<!-- Service Tabs -->
+		<div class="row">
+			<div class="col-lg-12">
+				<h2 class="page-header">Information</h2>
+			</div>
+			<div class="col-lg-12">
+
+				<ul id="myTab" class="nav nav-tabs nav-justified">
+					<li class="active"><a href="#service-one" data-toggle="tab"><i class="fa fa-tree"></i>
+							Description</a>
+					</li>
+					<li class=""><a href="#service-two" data-toggle="tab"><i class="fa fa-car"></i>Registered nodes in
+							X3D</a>
+					</li>
+				</ul>
+
+				<div id="myTabContent" class="tab-content">
+					<div class="tab-pane fade active in" id="service-one">
+						<h4>Description</h4>
+						<p style="text-align:justify;">
+							In this demo, a simple sound source is inculded which can be moved right and left. Depending
+							on the position of the
+							sound source, the user can hear the produced sound from the corresponding output speaker.
+						</p>
+					</div>
+					<div class="tab-pane fade" id="service-two">
+						<h4>Use of new registered nodes in X3D</h4>
+						<p style="text-align:justify;">
+
+							<br />
+							<br />
+						</p>
+						<p style="text-align:center;">
+							<br />
+							<br />
+							<div class="col-md-2"></div>
+							<div class="col-md-6"><img src="images/graphs/exampleSplitChannels.png" width="700px" />
+							</div>
+							<div class="col-md-2"></div>
+						</p>
+					</div>
+				</div>
+
+			</div>
+		</div>
+		<hr />
+
+		<!-- Footer -->
+		<footer>
+			<div class="row">
+				<div class="col-lg-12" style="text-align:center;">
+					<a href="http://www.medialab.teicrete.gr/index.php/minipages" target="_blank">Multimedia Content
+						Laboratory</a> <img src="images/logos/logo.png" width="40px" height="30px" />
+				</div>
+			</div>
+		</footer>
+
+	</div>
+	<!-- /.container -->
+
+	<!-- jQuery -->
+	<script src="js/jquery.js"></script>
+
+	<!-- Bootstrap Core JavaScript -->
+	<script src="js/bootstrap.min.js"></script>
+
+
+	<script type='text/javascript' src='soundController_SplitChannels.js'></script>
+
+	<script type="text/javascript">
+		// create an array with nodes
+		var nodes = new vis.DataSet([{
+				id: 1,
+				label: 'AudioClip',
+				shape: 'box',
+				color: 'rgba(48,150,136,1)'
+			},
+			{
+				id: 2,
+				label: 'ChannelSplitter',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 3,
+				label: 'Gain0',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 4,
+				label: 'ChannelSelector0',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 5,
+				label: 'Gain1',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 6,
+				label: 'ChannelSelector1',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 7,
+				label: 'ChannelMerger',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 8,
+				label: 'Gain3',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 9,
+				label: 'AudioDestination',
+				shape: 'box',
+				color: 'rgba(57,71,79,1)'
+			}
+		]);
+
+		// create an array with edges
+		var edges = new vis.DataSet([{
+				from: 1,
+				to: 2
+			},
+			{
+				from: 2,
+				to: 3
+			},
+			{
+				from: 3,
+				to: 4
+			},
+
+			{
+				from: 4,
+				to: 7
+			},
+			{
+				from: 2,
+				to: 5
+			},
+			{
+				from: 5,
+				to: 6
+			},
+			{
+				from: 6,
+				to: 7
+			},
+			{
+				from: 7,
+				to: 8
+			},
+			{
+				from: 8,
+				to: 9
+			}
+
+
+		]);
+
+
+		// create a network
+		var container = document.getElementById('mynetwork');
+		var data = {
+			nodes: nodes,
+			edges: edges
+		};
+		var options = {
+			nodes: {
+				font: {
+					size: 18,
+					color: "white",
+					bold: {
+						color: '#111111',
+						size: 14, // px
+						face: 'arial',
+						vadjust: 0,
+						mod: 'bold'
+					},
+					ital: {
+						color: '#111111',
+						size: 14, // px
+						face: 'arial',
+						vadjust: 0,
+						mod: 'italic',
+					}
+				},
+				borderWidth: 0,
+				labelHighlightBold: true,
+			},
+			edges: {
+				font: {
+					align: "top"
+				},
+				smooth: {
+					type: "dynamic",
+					forceDirection: "horizontal",
+					roundness: 0.0
+				},
+				arrows: {
+					to: {
+						enabled: true,
+						scaleFactor: 1,
+						type: "arrow"
+					}
+
+				},
+
+				color: {
+					color: '#000000',
+					highlight: '#000000',
+					hover: '#000000',
+					inherit: 'from',
+					opacity: 1.0
+				}
+			},
+
+			layout: {
+				hierarchical: {
+					direction: "LR",
+					sortMethod: 'directed'
+				}
+			}
+
+
+
+		};
+		var network = new vis.Network(container, data, options);
+	</script>
+
+
+
+</body>
+
+
+
+
+</html>

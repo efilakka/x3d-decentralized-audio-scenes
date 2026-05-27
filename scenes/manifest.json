@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "title": "Multi-Source Spatial Audio Navigation Scene",
+  "generatedAt": "2026-05-25T12:29:03.643Z",
+  "hashAlgorithm": "sha256",
+  "shell": "shell.x3d",
+  "mountPoint": "StreamedSources",
+  "sources": [
+    {
+      "id": 1,
+      "name": "Source 1 — The Caves of Moria",
+      "color": "#ff8000",
+      "def": "Sculpture1",
+      "lod0": "sources/source-1-lod0.x3d",
+      "lod1": "sources/source-1-lod1.x3d"
+    },
+    {
+      "id": 2,
+      "name": "Source 2 — The Caves of Khazad-dûm",
+      "color": "#33ccff",
+      "def": "Sculpture2",
+      "lod0": "sources/source-2-lod0.x3d",
+      "lod1": "sources/source-2-lod1.x3d"
+    },
+    {
+      "id": 3,
+      "name": "Source 3 — Tales of Samwise Gamgee",
+      "color": "#33ff33",
+      "def": "Sculpture3",
+      "lod0": "sources/source-3-lod0.x3d",
+      "lod1": "sources/source-3-lod1.x3d"
+    },
+    {
+      "id": 4,
+      "name": "Source 4 — The Glory of Gondor",
+      "color": "#ff33cc",
+      "def": "Sculpture4",
+      "lod0": "sources/source-4-lod0.x3d",
+      "lod1": "sources/source-4-lod1.x3d"
+    }
+  ],
+  "chunks": {
+    "shell.x3d": {
+      "path": "shell.x3d",
+      "sha256": "f927a5e027e0ed25da40f38c7980d9e15fc611b6a63274720a309a00779cdb00",
+      "bytes": 6851,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/shell.x3d"
+    },
+    "sources/source-1-lod0.x3d": {
+      "path": "sources/source-1-lod0.x3d",
+      "sha256": "0ddf0d1229d0ed80cd2737402c8e69bb5bde84f7381c6d4d97293464a43599cd",
+      "bytes": 359,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-1-lod0.x3d"
+    },
+    "sources/source-1-lod1.x3d": {
+      "path": "sources/source-1-lod1.x3d",
+      "sha256": "0f9519919a2db0dcad6b25881c4128da4de31e747bef453f810700c5ec823747",
+      "bytes": 1326,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-1-lod1.x3d"
+    },
+    "sources/source-2-lod0.x3d": {
+      "path": "sources/source-2-lod0.x3d",
+      "sha256": "e0851bed86d944c31c4b6bb99486d52949c6c87ba5b83e5a83c71a02409a31ed",
+      "bytes": 361,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-2-lod0.x3d"
+    },
+    "sources/source-2-lod1.x3d": {
+      "path": "sources/source-2-lod1.x3d",
+      "sha256": "f059723a70cf5dd60c8a6bc2ef26335ea65a108eeaf04ea10b48dd655ed673de",
+      "bytes": 1335,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-2-lod1.x3d"
+    },
+    "sources/source-3-lod0.x3d": {
+      "path": "sources/source-3-lod0.x3d",
+      "sha256": "4c2b0ae2a32683b30cda69ba773b3481526cfdd179de6e67b0a071296f8b6455",
+      "bytes": 360,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-3-lod0.x3d"
+    },
+    "sources/source-3-lod1.x3d": {
+      "path": "sources/source-3-lod1.x3d",
+      "sha256": "59a29f5f74a5191065faf8b58197d4fe4dae17471baeeb50a8f861bfb01e6dd4",
+      "bytes": 1333,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-3-lod1.x3d"
+    },
+    "sources/source-4-lod0.x3d": {
+      "path": "sources/source-4-lod0.x3d",
+      "sha256": "3ce788fa33e47a9bda0685f11c7ebe6bca49e0588b2713e8c7a141ae1e7b5ac0",
+      "bytes": 359,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-4-lod0.x3d"
+    },
+    "sources/source-4-lod1.x3d": {
+      "path": "sources/source-4-lod1.x3d",
+      "sha256": "2b0d0ce8e398733e82356183e8de792ca53843703ce624d2dea4d45dddf52b9d",
+      "bytes": 1328,
+      "ipfsCid": null,
+      "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/sources/source-4-lod1.x3d"
+    }
+  },
+  "ipfs": {
+    "rootCid": "bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu",
+    "gateway": "https://gateway.pinata.cloud/ipfs/",
+    "pinnedAt": "2026-05-26T09:16:01.279Z",
+    "updatedAt": "2026-05-26T09:16:01.285Z"
+  },
+  "anchor": {
+    "network": "sepolia",
+    "chainId": 11155111,
+    "contract": "0xeb62afe54b4805eaec777b99d66959798afb9f76",
+    "deployTx": "0x273fe93d223e3696f109a39ae6639b860c3ea18fe5d0ec170b40a1b097b1b264",
+    "deployedAt": "2026-05-26T11:12:48Z",
+    "rootCid": "bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu",
+    "explorerUrl": "https://sepolia.etherscan.io/address/0xeb62afe54b4805eaec777b99d66959798afb9f76"
+  }
+}

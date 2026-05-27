@@ -1,0 +1,779 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 4.0//EN" "https://www.web3d.org/specifications/x3d-4.0.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="description" content="Multi-Source Spatial Audio Navigation Scene — Streamed with Verify-Before-Bind" />
+	<title>Multi-Source Spatial Audio Navigation Scene — Streamed</title>
+
+	<script defer="defer" src="https://cdn.jsdelivr.net/npm/x_ite@14.0.0/dist/x_ite.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+	<script>
+	//<![CDATA[
+	// Blockchain Configuration
+	var BLOCKCHAIN_CONFIG = {
+		network: 'sepolia',
+		rpcUrl: 'https://ethereum-sepolia.publicnode.com',
+		contractAddress: '0xeb62afe54b4805eaec777b99d66959798afb9f76',
+		ipfsGateway: 'https://gateway.pinata.cloud/ipfs/',
+		contractABI: ['function manifestCid() view returns (string)']
+	};
+	
+	// Blockchain Verification Functions
+	async function queryContractCid() {
+		console.log('Querying blockchain for CID...');
+		var provider = new ethers.JsonRpcProvider(BLOCKCHAIN_CONFIG.rpcUrl);
+		var contract = new ethers.Contract(
+			BLOCKCHAIN_CONFIG.contractAddress,
+			BLOCKCHAIN_CONFIG.contractABI,
+			provider
+		);
+		var cid = await contract.manifestCid();
+		console.log('On-chain CID:', cid);
+		return cid;
+	}
+	
+	async function fetchManifestFromIPFS(cid) {
+		console.log('Fetching manifest from IPFS...');
+		var url = BLOCKCHAIN_CONFIG.ipfsGateway + cid + '/manifest.json';
+		console.log('IPFS URL:', url);
+		var response = await fetch(url);
+		if (!response.ok) throw new Error('IPFS fetch failed: ' + response.status);
+		var manifest = await response.json();
+		console.log('IPFS manifest loaded:', manifest.title);
+		return manifest;
+	}
+	
+	async function verifyBlockchainManifest() {
+		var statusEl = document.getElementById('blockchainStatus');
+		var cidEl = document.getElementById('onChainCid');
+		var steps = {
+			query: document.getElementById('bcStep1'),
+			fetch: document.getElementById('bcStep2'),
+			verify: document.getElementById('bcStep3')
+		};
+		
+		try {
+			// Step 1: Query blockchain
+			steps.query.className = 'bc-step active';
+			var onChainCid = await queryContractCid();
+			cidEl.textContent = onChainCid.substring(0, 20) + '...';
+			steps.query.className = 'bc-step done';
+			
+			// Step 2: Fetch from IPFS
+			steps.fetch.className = 'bc-step active';
+			var ipfsManifest = await fetchManifestFromIPFS(onChainCid);
+			steps.fetch.className = 'bc-step done';
+			
+			// Step 3: Compare with local
+			steps.verify.className = 'bc-step active';
+			var localManifest = await fetch('scenes/manifest.json').then(function(r) { return r.json(); });
+			
+			var localCid = localManifest.ipfs ? localManifest.ipfs.rootCid : null;
+			if (localCid === onChainCid) {
+				steps.verify.className = 'bc-step done';
+				statusEl.textContent = '✅ Verified';
+				statusEl.className = 'bc-status verified';
+				console.log('✅ Blockchain verification successful!');
+				return { verified: true, manifest: ipfsManifest, cid: onChainCid };
+			} else {
+				throw new Error('CID mismatch! Local: ' + localCid + ', On-chain: ' + onChainCid);
+			}
+		} catch (err) {
+			console.error('Blockchain verification failed:', err);
+			statusEl.textContent = '❌ Failed';
+			statusEl.className = 'bc-status failed';
+			return { verified: false, error: err.message };
+		}
+	}
+	
+	// Inline VerifiedSceneLoader (avoid CSP issues with external files)
+	(function(global) {
+		'use strict';
+		
+		async function sha256Hex(arrayBuffer) {
+			var digest = await crypto.subtle.digest('SHA-256', arrayBuffer);
+			return Array.from(new Uint8Array(digest)).map(function(b) {
+				return b.toString(16).padStart(2, '0');
+			}).join('');
+		}
+		
+		async function fetchAndVerify(url, expectedSha256) {
+			var t0 = performance.now();
+			var res = await fetch(url, { cache: 'no-store' });
+			if (!res.ok) throw new Error('Fetch failed: ' + res.status + ' ' + url);
+			var buffer = await res.arrayBuffer();
+			var actual = await sha256Hex(buffer);
+			var expected = (expectedSha256 || '').toLowerCase();
+			if (expected && actual !== expected) {
+				throw new Error('Hash mismatch for ' + url + '\nExpected: ' + expected + '\nActual: ' + actual);
+			}
+			return {
+				url: url,
+				bytes: buffer.byteLength,
+				sha256: actual,
+				loadMs: performance.now() - t0,
+				buffer: buffer,
+				verified: true
+			};
+		}
+		
+		async function loadManifest(url) {
+			var res = await fetch(url, { cache: 'no-store' });
+			if (!res.ok) throw new Error('Manifest fetch failed: ' + res.status);
+			return res.json();
+		}
+		
+		function waitForBrowser(canvas, maxMs) {
+			maxMs = maxMs || 10000;
+			return new Promise(function(resolve, reject) {
+				var start = Date.now();
+				(function tick() {
+					if (canvas && canvas.browser && canvas.browser.currentScene) {
+						resolve(canvas.browser);
+						return;
+					}
+					if (Date.now() - start > maxMs) {
+						reject(new Error('X_ITE not ready within ' + maxMs + 'ms'));
+						return;
+					}
+					setTimeout(tick, 100);
+				})();
+			});
+		}
+		
+	// Store blob URLs for cleanup
+	var blobUrls = {};
+	
+	async function mountChunk(canvas, mountDef, sculptureDef, chunkPath, verified) {
+		console.log('mountChunk:', sculptureDef);
+		var browser = canvas.browser;
+		var scene = browser.currentScene;
+		
+		// Create blob URL from verified buffer
+		var blob = new Blob([verified.buffer], { type: 'model/x3d+xml' });
+		var blobUrl = URL.createObjectURL(blob);
+		console.log('  Created blob URL:', blobUrl);
+		
+		// Cleanup old blob URL if exists
+		if (blobUrls[sculptureDef]) {
+			URL.revokeObjectURL(blobUrls[sculptureDef]);
+		}
+		blobUrls[sculptureDef] = blobUrl;
+		
+		// Find the pre-existing Inline node by DEF name
+		var inlineDef = 'Chunk_' + sculptureDef;
+		try {
+			var inlineNode = scene.getNamedNode(inlineDef);
+			console.log('  Found Inline node:', inlineDef);
+			
+			// Update URL to verified blob and enable loading
+			inlineNode.url = [blobUrl];
+			inlineNode.load = true;
+			
+			console.log('  Inline node activated with blob URL');
+			return { mounted: true, sculptureDef: sculptureDef, chunkPath: chunkPath };
+		} catch (err) {
+			console.error('  Inline node not found or update failed:', inlineDef, err);
+			return { mounted: false, sculptureDef: sculptureDef, chunkPath: chunkPath, error: err.message };
+		}
+	}
+		
+	async function loadAllSourcesLod0(canvas, options) {
+		var t0 = performance.now();
+		var manifest = await loadManifest(options.manifestUrl || 'scenes/manifest.json');
+		await waitForBrowser(canvas, 10000);
+		
+		var loads = await Promise.all(manifest.sources.map(async function(src) {
+			var chunkPath = src.lod0;
+			var meta = manifest.chunks[chunkPath];
+			var url = (options.scenesBaseUrl || 'scenes/') + chunkPath;
+			var verified = await fetchAndVerify(url, meta ? meta.sha256 : null);
+			await mountChunk(canvas, manifest.mountPoint || 'StreamedSources', src.def, chunkPath, verified);
+			return {
+				sourceId: src.id,
+				sculptureDef: src.def,
+				chunkPath: chunkPath,
+				lod: 0,
+				bytes: verified.bytes,
+				sha256: verified.sha256,
+				loadMs: verified.loadMs
+			};
+		}));
+		
+		return { manifest: manifest, loads: loads, totalMs: performance.now() - t0 };
+	}
+		
+	async function upgradeSourceLod1(canvas, manifest, baseUrl, sourceId) {
+		var src = manifest.sources.find(function(s) { return s.id === sourceId; });
+		if (!src) throw new Error('Unknown source: ' + sourceId);
+		var meta = manifest.chunks[src.lod1];
+		var url = baseUrl + src.lod1;
+		var verified = await fetchAndVerify(url, meta ? meta.sha256 : null);
+		await mountChunk(canvas, manifest.mountPoint || 'StreamedSources', src.def, src.lod1, verified);
+		return {
+			sourceId: sourceId,
+			sculptureDef: src.def,
+			chunkPath: src.lod1,
+			lod: 1,
+			bytes: verified.bytes,
+			sha256: verified.sha256,
+			loadMs: verified.loadMs
+		};
+	}
+		
+		global.VerifiedSceneLoader = {
+			sha256Hex: sha256Hex,
+			fetchAndVerify: fetchAndVerify,
+			loadManifest: loadManifest,
+			waitForBrowser: waitForBrowser,
+			mountChunk: mountChunk,
+			loadAllSourcesLod0: loadAllSourcesLod0,
+			upgradeSourceLod1: upgradeSourceLod1
+		};
+	})(window);
+	//]]>
+	</script>
+
+	<style>
+		:root {
+			--bg: #eef2f7;
+			--surface: #ffffff;
+			--text: #1e293b;
+			--muted: #64748b;
+			--border: rgba(15, 23, 42, 0.1);
+			--shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+			--source-1: #e6801a;
+			--source-2: #33cce6;
+			--source-3: #33e64d;
+			--source-4: #e633b3;
+		}
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			font: 14px/1.5 'Segoe UI', system-ui, sans-serif;
+			color: var(--text);
+			background: var(--bg);
+			min-height: 100vh;
+		}
+		.page-hero {
+			text-align: center;
+			padding: 18px 16px 10px;
+			background: var(--surface);
+			border-bottom: 1px solid var(--border);
+		}
+		.page-hero h1 {
+			margin: 0 0 6px;
+			font-size: 1.45rem;
+			font-weight: 600;
+		}
+		.page-hero-sub {
+			margin: 0;
+			font-size: 13px;
+			color: var(--muted);
+		}
+		.page-layout {
+			max-width: 1400px;
+			margin: 0 auto;
+			padding: 16px;
+			display: grid;
+			grid-template-columns: 1fr 320px;
+			gap: 16px;
+		}
+		@media (max-width: 900px) {
+			.page-layout { grid-template-columns: 1fr; }
+		}
+		.scene-canvas {
+			display: block;
+			width: 100%;
+			height: min(75vh, 720px);
+			min-height: 480px;
+			border-radius: 12px;
+			border: 1px solid var(--border);
+			box-shadow: var(--shadow);
+			background: #0b1020;
+		}
+		.scene-controls {
+			text-align: center;
+			margin-top: 12px;
+		}
+		#startButton {
+			padding: 12px 24px;
+			border: none;
+			border-radius: 8px;
+			font-size: 14px;
+			font-weight: 600;
+			color: #fff;
+			cursor: pointer;
+			background: #3b6ea5;
+		}
+		#startButton:hover { background: #325d8c; }
+		#startButton:disabled { background: #94a3b8; cursor: not-allowed; }
+		.panel {
+			background: var(--surface);
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 16px;
+			box-shadow: var(--shadow);
+		}
+		.panel h3 {
+			margin: 0 0 12px;
+			font-size: 14px;
+			font-weight: 600;
+			color: #0f766e;
+			border-bottom: 1px solid var(--border);
+			padding-bottom: 8px;
+		}
+		.metric-row {
+			display: flex;
+			justify-content: space-between;
+			padding: 6px 0;
+			border-bottom: 1px solid var(--border);
+			font-size: 12px;
+		}
+		.metric-row:last-child { border-bottom: none; }
+		.metric-label { color: var(--muted); }
+		.metric-value { font-weight: 600; font-family: monospace; }
+		.chunk-list { margin-top: 12px; }
+		.chunk-item {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px;
+			margin: 6px 0;
+			background: #f8fafc;
+			border-radius: 6px;
+			font-size: 11px;
+		}
+		.chunk-status {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: #94a3b8;
+		}
+		.chunk-status.pending { background: #fbbf24; }
+		.chunk-status.verified { background: #22c55e; }
+		.chunk-status.failed { background: #ef4444; }
+		.chunk-name { flex: 1; font-weight: 500; }
+		.chunk-time { color: var(--muted); font-family: monospace; }
+		.lod-buttons { margin-top: 16px; }
+		.lod-btn {
+			display: block;
+			width: 100%;
+			margin: 6px 0;
+			padding: 8px;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: #f8fafc;
+			font-size: 12px;
+			cursor: pointer;
+			text-align: left;
+		}
+		.lod-btn:hover { background: #e2e8f0; }
+		.lod-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+		.lod-btn .lod-label { font-weight: 600; }
+		.lod-btn .lod-status { float: right; color: var(--muted); }
+		
+		/* Blockchain Verification Styles */
+		.bc-section { margin-bottom: 16px; }
+		.bc-btn {
+			width: 100%;
+			padding: 10px 16px;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+			border-radius: 8px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: transform 0.2s, box-shadow 0.2s;
+		}
+		.bc-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+		.bc-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+		.bc-status-row {
+			display: flex;
+			justify-content: space-between;
+			padding: 6px 0;
+			font-size: 12px;
+			border-bottom: 1px solid var(--border);
+		}
+		.bc-status { font-weight: 600; }
+		.bc-status.pending { color: #94a3b8; }
+		.bc-status.verified { color: #22c55e; }
+		.bc-status.failed { color: #ef4444; }
+		.bc-cid { font-family: monospace; font-size: 11px; color: var(--muted); }
+		.bc-steps { margin-top: 12px; }
+		.bc-step {
+			padding: 6px 10px;
+			margin: 4px 0;
+			background: #f1f5f9;
+			border-radius: 4px;
+			font-size: 11px;
+			color: var(--muted);
+			border-left: 3px solid #cbd5e1;
+		}
+		.bc-step.active {
+			background: #fef3c7;
+			color: #92400e;
+			border-left-color: #f59e0b;
+		}
+		.bc-step.done {
+			background: #dcfce7;
+			color: #166534;
+			border-left-color: #22c55e;
+		}
+		.bc-step.done::after { content: ' ✓'; }
+	</style>
+</head>
+<body>
+
+<header class="page-hero">
+	<h1>Multi-Source Spatial Audio Navigation Scene</h1>
+	<p class="page-hero-sub">Streamed with Verify-Before-Bind — sculpture LOD chunks verified before mount</p>
+</header>
+
+<div class="page-layout">
+	<section class="scene-block">
+		<x3d-canvas class="scene-canvas" id="x3dCanvas" profile='Full' version='4.0'
+			update='auto' contentScale='auto'>
+			<X3D profile='Full' version='4.0'>
+				<Scene>
+					<NavigationInfo headlight='true' type='EXAMINE' />
+					<Background skyColor='0.72 0.84 0.96' />
+
+					<PointLight location='0 1200 0' intensity='0.55' on='true' />
+					<DirectionalLight direction='0.2 -1 -0.4' intensity='0.85' on='true' global='true' />
+					<PointLight location='-600 280 -600' color='1 0.5 0' intensity='0.45' radius='1200' on='true' />
+					<PointLight location='600 280 -600' color='0.2 0.8 1' intensity='0.45' radius='1200' on='true' />
+					<PointLight location='-600 280 600' color='0.2 1 0.2' intensity='0.45' radius='1200' on='true' />
+					<PointLight location='600 280 600' color='1 0.2 0.8' intensity='0.45' radius='1200' on='true' />
+
+					<Viewpoint DEF='GalleryViewpoint' description='Gallery overview'
+						position='0 0 10' orientation='0 0 1 0' fieldOfView='1.05'
+						set_bind='true' jump='true' />
+
+					<AudioDestination channelInterpretation='speakers'>
+						<SpatialSound description='SpatialSound1' location='-600 0 -600'
+							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
+							<Gain description='Gain1' gain='0.8'>
+								<Sound location='0 0 0'>
+									<AudioClip description='The Caves of Moria' loop='true'
+										url='"sound/lordOftheRings/the-caves-of-moria-460016.mp3"'
+										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+								</Sound>
+							</Gain>
+						</SpatialSound>
+						<SpatialSound description='SpatialSound2' location='600 0 -600'
+							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
+							<Gain description='Gain2' gain='0.7'>
+								<Sound location='0 0 0'>
+									<AudioClip description='The Caves of Khazad-dum' loop='true'
+										url='"sound/lordOftheRings/the-caves-of-khazad-dum-314281.mp3"'
+										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+								</Sound>
+							</Gain>
+						</SpatialSound>
+						<SpatialSound description='SpatialSound3' location='-600 0 600'
+							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
+							<Gain description='Gain3' gain='0.75'>
+								<Sound location='0 0 0'>
+									<AudioClip description='Tales of Samwise Gamgee' loop='true'
+										url='"sound/lordOftheRings/the-tales-of-samwise-gamgee-339193.mp3"'
+										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+								</Sound>
+							</Gain>
+						</SpatialSound>
+						<SpatialSound description='SpatialSound4' location='600 0 600'
+							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
+							<Gain description='Gain4' gain='0.8'>
+								<Sound location='0 0 0'>
+									<AudioClip description='The Glory of Gondor' loop='true'
+										url='"sound/lordOftheRings/the-glory-of-gondor-435113.mp3"'
+										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+								</Sound>
+							</Gain>
+						</SpatialSound>
+					</AudioDestination>
+
+					<TimeSensor DEF='CameraTimer' loop='true' cycleInterval='70.0' stopTime='0' />
+					<PositionInterpolator DEF='CameraPositionInterpolator'
+						key='0 0.02 0.04 0.12 0.28 0.44 0.52 0.6 0.68 0.72 0.76 1'
+						keyValue='0 1600 0, 0 1300 0, 0 1150 0, -600 220 -380, 600 220 -380, 0 950 0, 0 850 0, -600 220 380, 600 220 380, 0 950 0, 0 1300 0, 0 1600 0' />
+					<OrientationInterpolator DEF='CameraOrientationInterpolator'
+						key='0 0.02 0.04 0.12 0.28 0.44 0.52 0.6 0.68 0.72 0.76 1'
+						keyValue='1 0 0 -1.570796, 1 0 0 -1.570796, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 2.879793, 0.258819 0.965926 0 2.879793, 0.258819 0.965926 0 0.261799, 1 0 0 -1.570796, 1 0 0 -1.570796' />
+					<ROUTE fromNode='CameraTimer' fromField='fraction_changed' toNode='CameraPositionInterpolator' toField='set_fraction' />
+					<ROUTE fromNode='CameraPositionInterpolator' fromField='value_changed' toNode='GalleryViewpoint' toField='set_position' />
+					<ROUTE fromNode='CameraTimer' fromField='fraction_changed' toNode='CameraOrientationInterpolator' toField='set_fraction' />
+					<ROUTE fromNode='CameraOrientationInterpolator' fromField='value_changed' toNode='GalleryViewpoint' toField='set_orientation' />
+
+					<Transform DEF='Floor' translation='0 -3 0'>
+						<Shape>
+							<Appearance><Material diffuseColor='0.32 0.34 0.42' ambientIntensity='0.35' shininess='0.15' /></Appearance>
+							<Box size='10000 6 10000' />
+						</Shape>
+					</Transform>
+					<Transform translation='-600 10 -600'>
+						<Shape><Appearance><Material diffuseColor='1 0.502 0' emissiveColor='0.2 0.1 0' /></Appearance><Cylinder radius='290' height='14' /></Shape>
+					</Transform>
+					<Transform translation='600 10 -600'>
+						<Shape><Appearance><Material diffuseColor='0.2 0.8 1' emissiveColor='0.05 0.16 0.22' /></Appearance><Cylinder radius='290' height='14' /></Shape>
+					</Transform>
+					<Transform translation='-600 10 600'>
+						<Shape><Appearance><Material diffuseColor='0.2 1 0.2' emissiveColor='0.05 0.2 0.05' /></Appearance><Cylinder radius='290' height='14' /></Shape>
+					</Transform>
+					<Transform translation='600 10 600'>
+						<Shape><Appearance><Material diffuseColor='1 0.2 0.8' emissiveColor='0.2 0.05 0.16' /></Appearance><Cylinder radius='290' height='14' /></Shape>
+					</Transform>
+
+					<!-- Streamed sculpture chunks - loaded via Inline -->
+					<Inline DEF='Chunk_Sculpture1' load='false' url='"scenes/sources/source-1-lod0.x3d"' />
+					<Inline DEF='Chunk_Sculpture2' load='false' url='"scenes/sources/source-2-lod0.x3d"' />
+					<Inline DEF='Chunk_Sculpture3' load='false' url='"scenes/sources/source-3-lod0.x3d"' />
+					<Inline DEF='Chunk_Sculpture4' load='false' url='"scenes/sources/source-4-lod0.x3d"' />
+				</Scene>
+			</X3D>
+		</x3d-canvas>
+		<div class="scene-controls">
+			<button id="startButton" disabled="disabled">Loading shell...</button>
+		</div>
+	</section>
+
+	<aside class="panel">
+		<h3>🔗 Blockchain Verification</h3>
+		<div class="bc-section">
+			<button id="verifyBlockchainBtn" class="bc-btn">Verify from Chain</button>
+			<div class="bc-status-row">
+				<span>Status:</span>
+				<span id="blockchainStatus" class="bc-status pending">Not verified</span>
+			</div>
+			<div class="bc-status-row">
+				<span>On-chain CID:</span>
+				<span id="onChainCid" class="bc-cid">—</span>
+			</div>
+			<div class="bc-steps">
+				<div id="bcStep1" class="bc-step">1. Query Sepolia</div>
+				<div id="bcStep2" class="bc-step">2. Fetch IPFS</div>
+				<div id="bcStep3" class="bc-step">3. Verify Match</div>
+			</div>
+		</div>
+		
+		<h3 style="margin-top:20px;">Streaming Metrics</h3>
+		<div class="metric-row">
+			<span class="metric-label">Shell loaded</span>
+			<span class="metric-value" id="metricShell">—</span>
+		</div>
+		<div class="metric-row">
+			<span class="metric-label">LOD0 chunks</span>
+			<span class="metric-value" id="metricLod0">—</span>
+		</div>
+		<div class="metric-row">
+			<span class="metric-label">Total verified</span>
+			<span class="metric-value" id="metricVerified">0 / 0</span>
+		</div>
+		<div class="metric-row">
+			<span class="metric-label">Total bytes</span>
+			<span class="metric-value" id="metricBytes">—</span>
+		</div>
+
+		<h3 style="margin-top:20px;">Chunk Status</h3>
+		<div class="chunk-list" id="chunkList"></div>
+
+		<h3 style="margin-top:20px;">LOD Upgrade</h3>
+		<div class="lod-buttons" id="lodButtons"></div>
+	</aside>
+</div>
+
+<script type='text/javascript' src='soundController_MultiSourceSpatialAudioNavigationScene_XITE.js'></script>
+
+<script>
+//<![CDATA[
+(function() {
+	'use strict';
+
+	var canvas = document.getElementById('x3dCanvas');
+	var startBtn = document.getElementById('startButton');
+	var chunkListEl = document.getElementById('chunkList');
+	var lodButtonsEl = document.getElementById('lodButtons');
+	var bcBtn = document.getElementById('verifyBlockchainBtn');
+	
+	// Blockchain verification button handler
+	bcBtn.onclick = async function() {
+		bcBtn.disabled = true;
+		bcBtn.textContent = 'Verifying...';
+		try {
+			var result = await verifyBlockchainManifest();
+			if (result.verified) {
+				bcBtn.textContent = '✅ Verified!';
+			} else {
+				bcBtn.textContent = 'Retry Verification';
+				bcBtn.disabled = false;
+			}
+		} catch (err) {
+			console.error('Blockchain verification error:', err);
+			bcBtn.textContent = 'Retry Verification';
+			bcBtn.disabled = false;
+		}
+	};
+
+	var manifest = null;
+	var loadedChunks = {};
+	var totalBytes = 0;
+	var verifiedCount = 0;
+	var totalChunks = 0;
+
+	function updateMetric(id, value) {
+		var el = document.getElementById(id);
+		if (el) el.textContent = value;
+	}
+
+	function addChunkStatus(name, status, timeMs) {
+		var div = document.createElement('div');
+		div.className = 'chunk-item';
+		div.innerHTML =
+			'<span class="chunk-status ' + status + '"></span>' +
+			'<span class="chunk-name">' + name + '</span>' +
+			'<span class="chunk-time">' + (timeMs ? timeMs.toFixed(0) + ' ms' : '') + '</span>';
+		chunkListEl.appendChild(div);
+		return div;
+	}
+
+	function updateChunkStatus(div, status, timeMs) {
+		var statusEl = div.querySelector('.chunk-status');
+		statusEl.className = 'chunk-status ' + status;
+		if (timeMs !== undefined) {
+			div.querySelector('.chunk-time').textContent = timeMs.toFixed(0) + ' ms';
+		}
+	}
+
+	function createLodButton(source) {
+		var btn = document.createElement('button');
+		btn.className = 'lod-btn';
+		btn.dataset.sourceId = source.id;
+		btn.innerHTML =
+			'<span class="lod-label">Source ' + source.id + '</span>' +
+			'<span class="lod-status">LOD0</span>';
+		btn.onclick = function() { upgradeLod(source.id); };
+		lodButtonsEl.appendChild(btn);
+		return btn;
+	}
+
+	async function upgradeLod(sourceId) {
+		if (!manifest) return;
+		var btn = lodButtonsEl.querySelector('[data-source-id="' + sourceId + '"]');
+		if (btn) {
+			btn.disabled = true;
+			btn.querySelector('.lod-status').textContent = 'Loading...';
+		}
+
+		try {
+			var result = await VerifiedSceneLoader.upgradeSourceLod1(
+				canvas, manifest, 'scenes/', sourceId
+			);
+			loadedChunks[result.chunkPath] = result;
+			totalBytes += result.bytes;
+			verifiedCount++;
+			updateMetric('metricBytes', (totalBytes / 1024).toFixed(1) + ' KB');
+			updateMetric('metricVerified', verifiedCount + ' / ' + totalChunks);
+
+			addChunkStatus(result.chunkPath, 'verified', result.loadMs);
+
+			if (btn) {
+				btn.querySelector('.lod-status').textContent = 'LOD1 ✓';
+			}
+		} catch (err) {
+			console.error('LOD upgrade failed:', err);
+			if (btn) {
+				btn.disabled = false;
+				btn.querySelector('.lod-status').textContent = 'Failed';
+			}
+		}
+	}
+
+	async function init() {
+		console.log('Streamed init starting...');
+		console.log('VerifiedSceneLoader available:', typeof VerifiedSceneLoader !== 'undefined');
+		
+		if (typeof VerifiedSceneLoader === 'undefined') {
+			startBtn.textContent = 'Error: Loader blocked by security policy';
+			console.error('VerifiedSceneLoader not loaded - CSP may be blocking it');
+			return;
+		}
+		
+		try {
+			console.log('Waiting for X_ITE browser...');
+			await VerifiedSceneLoader.waitForBrowser(canvas, 10000);
+			console.log('Browser ready');
+			updateMetric('metricShell', '✓ embedded');
+
+			console.log('Loading manifest...');
+			manifest = await VerifiedSceneLoader.loadManifest('scenes/manifest.json');
+			console.log('Manifest loaded:', manifest.title);
+			totalChunks = Object.keys(manifest.chunks).length;
+			updateMetric('metricVerified', '0 / ' + totalChunks);
+
+			manifest.sources.forEach(function(src) {
+				createLodButton(src);
+			});
+
+			var lod0Divs = {};
+			manifest.sources.forEach(function(src) {
+				lod0Divs[src.lod0] = addChunkStatus(src.lod0, 'pending', null);
+			});
+
+			startBtn.textContent = 'Loading LOD0...';
+			console.log('Loading LOD0 chunks...');
+
+			var result = await VerifiedSceneLoader.loadAllSourcesLod0(canvas, {
+				manifestUrl: 'scenes/manifest.json',
+				scenesBaseUrl: 'scenes/'
+			});
+
+			console.log('LOD0 loaded:', result.loads.length, 'chunks in', result.totalMs.toFixed(0), 'ms');
+			
+			result.loads.forEach(function(load) {
+				loadedChunks[load.chunkPath] = load;
+				totalBytes += load.bytes;
+				verifiedCount++;
+				console.log('  ✓', load.chunkPath, load.bytes, 'bytes', load.loadMs.toFixed(0), 'ms');
+				if (lod0Divs[load.chunkPath]) {
+					updateChunkStatus(lod0Divs[load.chunkPath], 'verified', load.loadMs);
+				}
+			});
+
+			updateMetric('metricLod0', result.totalMs.toFixed(0) + ' ms');
+			updateMetric('metricBytes', (totalBytes / 1024).toFixed(1) + ' KB');
+			updateMetric('metricVerified', verifiedCount + ' / ' + totalChunks);
+
+			startBtn.textContent = 'Start Audio \u0026 Tour';
+			startBtn.disabled = false;
+			startBtn.onclick = function() {
+				if (window.resumeAudioContext) window.resumeAudioContext();
+				setTimeout(function() {
+					if (window.startCameraAnimation) window.startCameraAnimation();
+				}, 500);
+				startBtn.style.display = 'none';
+			};
+
+		} catch (err) {
+			console.error('Streaming init failed:', err);
+			startBtn.textContent = 'Error: ' + err.message;
+		}
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+})();
+//]]>
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2072 @@
+﻿<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 4.0//EN" "https://www.web3d.org/specifications/x3d-4.0.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+	<meta name="reference" content="soundController_MultiSourceSpatialAudioNavigationScene_XITE.js" />
+	<meta name="description" content="Multi-Source Spatial Audio Navigation Scene — X3D 4.0 spatial audio navigation with multiple sources in X_ITE" />
+
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="author" content="medialab.teicrete.gr" />
+	<meta property="og:title" content="Multi-Source Spatial Audio Navigation Scene — X_ITE" />
+	<meta property="og:image" content="http://medialab.teicrete.gr/minipages/x3domAudio/spatial.png" />
+	<meta property="og:description"
+		content="Navigate a 3D gallery with four spatial audio sources; camera tour and live statistics in X_ITE using X3D 4.0 and Web Audio API." />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="Multi-Source Spatial Audio Navigation Scene — X_ITE" />
+	<meta name="twitter:description"
+		content="Navigate a 3D gallery with four spatial audio sources; camera tour and live statistics in X_ITE using X3D 4.0 and Web Audio API." />
+	<meta name="twitter:image" content="http://medialab.teicrete.gr/minipages/x3domAudio/spatial.png" />
+
+	<title>Multi-Source Spatial Audio Navigation Scene — X_ITE</title>
+	<!-- X_ITE Library (CDN) - Trying latest stable version -->
+	<script defer="defer" src="https://cdn.jsdelivr.net/npm/x_ite@14.0.0/dist/x_ite.min.js"></script>
+
+	<style type="text/css">
+		:root {
+			--bg: #eef2f7;
+			--surface: #ffffff;
+			--text: #1e293b;
+			--muted: #64748b;
+			--border: rgba(15, 23, 42, 0.1);
+			--shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+			--stats-width: 288px;
+			/* Matches Sculpture diffuseColor in scene (0–1 RGB → hex) */
+			--source-1: #e6801a;
+			--source-2: #33cce6;
+			--source-3: #33e64d;
+			--source-4: #e633b3;
+			--max-content: 1400px;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			font: 14px/1.5 'Segoe UI', system-ui, sans-serif;
+			color: var(--text);
+			background: var(--bg);
+			min-height: 100vh;
+		}
+
+		a {
+			color: #2563eb;
+			cursor: pointer;
+		}
+
+		.page-hero {
+			text-align: center;
+			padding: 18px 16px 10px;
+			background: var(--surface);
+			border-bottom: 1px solid var(--border);
+		}
+
+		.page-hero h1 {
+			margin: 0 0 6px;
+			font-size: 1.45rem;
+			font-weight: 600;
+			letter-spacing: -0.02em;
+		}
+
+		.page-hero-sub {
+			margin: 0;
+			font-size: 13px;
+			color: var(--muted);
+		}
+
+		.page-layout {
+			max-width: var(--max-content);
+			margin: 0 auto;
+			padding: 16px 16px 32px;
+			padding-right: calc(16px + var(--stats-width) + 12px);
+		}
+
+		.scene-block {
+			width: 100%;
+		}
+
+		.scene-canvas {
+			display: block;
+			width: 100%;
+			height: min(88vh, 960px);
+			min-height: 640px;
+			border-radius: 12px;
+			overflow: hidden;
+			border: 1px solid var(--border);
+			box-shadow: var(--shadow);
+			background: #0b1020;
+		}
+
+		.scene-controls {
+			text-align: center;
+			margin: 14px 0 0;
+		}
+
+		#audioStartButton {
+			display: none;
+			padding: 11px 22px;
+			border: none;
+			border-radius: 8px;
+			font-size: 14px;
+			font-weight: 600;
+			color: #fff;
+			cursor: pointer;
+			background: #3b6ea5;
+			box-shadow: 0 2px 8px rgba(59, 110, 165, 0.35);
+		}
+
+		#audioStartButton:hover:not([disabled]) {
+			background: #325d8c;
+		}
+
+		.graph-block {
+			margin-top: 28px;
+		}
+
+		.graph-block h2 {
+			margin: 0 0 6px;
+			font-size: 1.1rem;
+			font-weight: 600;
+		}
+
+		.graph-hint {
+			margin: 0 0 12px;
+			font-size: 12px;
+			color: var(--muted);
+		}
+
+		#mynetwork {
+			width: 100%;
+			height: min(52vh, 560px);
+			min-height: 480px;
+			border-radius: 12px;
+			border: 1px solid var(--border);
+			background: #f8fafc;
+			box-shadow: var(--shadow);
+		}
+
+		#statsPanel {
+			position: fixed;
+			top: 12px;
+			right: 12px;
+			width: min(var(--stats-width), calc(100vw - 24px));
+			max-height: calc(100vh - 24px);
+			overflow-y: auto;
+			padding: 14px 16px;
+			z-index: 900;
+			font-size: 12px;
+			color: var(--text);
+			background: rgba(255, 255, 255, 0.96);
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			box-shadow: var(--shadow);
+			backdrop-filter: blur(8px);
+		}
+
+		#statsPanel h3 {
+			margin: 0 0 10px;
+			padding-bottom: 8px;
+			font-size: 13px;
+			font-weight: 600;
+			color: #0f766e;
+			border-bottom: 1px solid var(--border);
+		}
+
+		#statsPanel #cameraInfo,
+		#statsPanel #camOrientation,
+		#statsPanel #sourceLevelBars,
+		#statsPanel .stats-source-row,
+		#statsPanel #activeSource {
+			background: #f8fafc;
+			border: 1px solid var(--border);
+			border-radius: 8px;
+		}
+
+		#statsPanel #cameraInfo,
+		#statsPanel #camOrientation {
+			margin-bottom: 12px;
+			padding: 8px 10px;
+		}
+
+		#statsPanel #sourceLevelBars {
+			margin-bottom: 12px;
+		}
+
+		#statsPanel .stats-source-row {
+			margin: 8px 0;
+			padding: 8px 10px;
+		}
+
+		#statsPanel #activeSource {
+			padding: 8px 10px;
+			margin-bottom: 0;
+		}
+
+		#statsPanel #distanceWarning {
+			margin-top: 10px;
+			padding: 10px;
+			border-radius: 8px;
+			border-left: 4px solid #f59f00;
+			background: #fffbeb;
+			color: var(--text);
+		}
+
+		@media (max-width: 1100px) {
+			.page-layout {
+				padding-right: 16px;
+				padding-bottom: calc(38vh + 24px);
+			}
+
+			#statsPanel {
+				top: auto;
+				bottom: 12px;
+				left: 12px;
+				right: 12px;
+				width: auto;
+				max-height: 36vh;
+			}
+
+			.scene-canvas {
+				min-height: 52vh;
+				height: min(70vh, 720px);
+			}
+		}
+
+		/* Hide only X_ITE built-in stats/log overlays (do not hide canvas/WebGL) */
+		x3d-canvas::part(statistics),
+		x3d-canvas::part(log) {
+			display: none !important;
+		}
+	</style>
+
+	<!-- SpatialSound.js removed - not needed for X_ITE, X_ITE has built-in support for X3D audio nodes -->
+	<script type="text/javascript" src="dist/vis.js"></script>
+
+
+</head>
+
+<body>
+
+	<header class="page-hero">
+		<h1>Multi-Source Spatial Audio Navigation Scene</h1>
+		<p class="page-hero-sub">X3D 4.0 spatial audio navigation in X_ITE — four sources, camera tour, live statistics</p>
+	</header>
+
+	<div id="statsPanel" aria-live="polite">
+		<h3>📊 Audio Statistics</h3>
+		<div id="cameraInfo">
+			<strong>Camera Position:</strong><br />
+			<span id="camPos">Loading...</span>
+		</div>
+		<div id="sourceLevelBars"></div>
+		<div id="activeSource">
+			<strong>Active Source:</strong><br />
+			<span id="activeSourceText">-</span>
+		</div>
+		<div id="distanceWarning">
+			<span id="statusIcon">⚠️ </span><span id="warningText">Monitoring camera position...</span>
+		</div>
+	</div>
+
+	<div class="page-layout">
+
+		<section class="scene-block">
+			<x3d-canvas class="scene-canvas" id="x3dCanvasElement" profile='Full' version='4.0' xmlns:xsd='http://www.w3.org/2001/XMLSchema-instance'
+				xsd:noNamespaceSchemaLocation='https://www.web3d.org/specifications/x3d-4.0.xsd'
+				update='auto' contentScale='auto' showStatistics='false' showLog='false'>
+					<X3D profile='Full' version='4.0'>
+						<head>
+							<component name='X_ITE' level='1'/>
+						</head>
+						<Scene>
+						<NavigationInfo headlight='true' type='EXAMINE' />
+
+						<!-- Background - bright sky -->
+						<Background skyColor='0.6 0.8 1.0' />
+
+						<!-- Lights - MUST be on and bright -->
+						<!-- AmbientLight replaced with PointLight (standard X3D node) -->
+						<PointLight location='0 2000 0' intensity='0.8' on='true' />
+						<DirectionalLight direction='0 -1 -1' intensity='1.0' on='true' global='true' />
+
+						<!-- Viewpoint - MUST be bound and looking at object -->
+						<Viewpoint DEF='GalleryViewpoint'
+							description='Camera looking at red sphere'
+							position='0 0 10'
+							orientation='0 0 1 0'
+							set_bind='true'
+							jump='true' />
+
+						<!-- Audio System - MUST BE ACTIVE (not commented) -->
+						<AudioDestination channelInterpretation='speakers'>
+							<!-- ListenerPointSource removed - causes error in X_ITE -->
+
+							<!-- Sculpture 1 Audio: The Caves of Moria -->
+							<SpatialSound description="The SpatialSound node: SpatialSound1 - The Caves of Moria" location='-600 0 -600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound1: Gain1" gain='0.8'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Caves of Moria' loop='true'
+											url='"sound/lordOftheRings/the-caves-of-moria-460016.mp3" "sound/violin.mp3" "sound/violin.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+							<!-- Sculpture 2 Audio: The Caves of Khazad-dûm -->
+							<SpatialSound description="The SpatialSound node: SpatialSound2 - The Caves of Khazad-dûm" location='600 0 -600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound2: Gain2" gain='0.7'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Caves of Khazad-dûm' loop='true'
+											url='"sound/lordOftheRings/the-caves-of-khazad-dum-314281.mp3" "sound/beat.mp3" "sound/beat.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+							<!-- Sculpture 3 Audio: The Tales of Samwise Gamgee -->
+							<SpatialSound description="The SpatialSound node: SpatialSound3 - The Tales of Samwise Gamgee" location='-600 0 600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound3: Gain3" gain='0.75'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Tales of Samwise Gamgee' loop='true'
+											url='"sound/lordOftheRings/the-tales-of-samwise-gamgee-339193.mp3" "sound/techno_beat.mp3" "sound/techno_beat.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+							<!-- Sculpture 4 Audio: The Glory of Gondor -->
+							<SpatialSound description="The SpatialSound node: SpatialSound4 - The Glory of Gondor" location='600 0 600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound4: Gain4" gain='0.8'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Glory of Gondor' loop='true'
+											url='"sound/lordOftheRings/the-glory-of-gondor-435113.mp3" "sound/saxophone.mp3" "sound/saxophone.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+						</AudioDestination>
+
+						<!-- Camera Animation and Full Scene -->
+						<!-- TimeSensor for camera animation (70 second loop) - Starts paused, will be started when audio begins -->
+						<TimeSensor DEF='CameraTimer' loop='true' cycleInterval='70.0' stopTime='0' />
+
+						<!-- Position Interpolator - Two descents: first to Orange/Cyan, second dive to Green/Magenta -->
+						<PositionInterpolator DEF='CameraPositionInterpolator' 
+							key='0 0.02 0.04 0.12 0.28 0.44 0.52 0.6 0.68 0.72 0.76 1' 
+							keyValue='
+								0 2500 0,
+								0 2000 0,
+								0 1800 0,
+								-600 200 -300,
+								600 200 -300,
+								0 1500 0,
+								0 1200 0,
+								-600 200 300,
+								600 200 300,
+								0 1500 0,
+								0 2000 0,
+								0 2500 0' />
+
+						<!-- Orientation Interpolator - looks at each cube when nearby -->
+						<OrientationInterpolator DEF='CameraOrientationInterpolator' 
+							key='0 0.02 0.04 0.12 0.28 0.44 0.52 0.6 0.68 0.72 0.76 1' 
+							keyValue='
+								1 0 0 -1.570796,
+								1 0 0 -1.570796,
+								0.258819 0.965926 0 0.261799,
+								0.258819 0.965926 0 0.261799,
+								0.258819 0.965926 0 0.261799,
+								0.258819 0.965926 0 0.261799,
+								0.258819 0.965926 0 0.261799,
+								0.258819 0.965926 0 2.879793,
+								0.258819 0.965926 0 2.879793,
+								0.258819 0.965926 0 0.261799,
+								1 0 0 -1.570796,
+								1 0 0 -1.570796' />
+
+						<!-- ROUTE connections for camera animation -->
+						<ROUTE fromNode='CameraTimer' fromField='fraction_changed' toNode='CameraPositionInterpolator' toField='set_fraction' /> 
+						<ROUTE fromNode='CameraPositionInterpolator' fromField='value_changed' toNode='GalleryViewpoint' toField='set_position' /> 
+						<ROUTE fromNode='CameraTimer' fromField='fraction_changed' toNode='CameraOrientationInterpolator' toField='set_fraction' /> 
+						<ROUTE fromNode='CameraOrientationInterpolator' fromField='value_changed' toNode='GalleryViewpoint' toField='set_orientation' />
+
+						<!-- Large Open Gallery Floor with decorative pattern -->
+						<Transform DEF='Floor' translation='0 0 0'>
+							<Shape>
+								<Appearance DEF='FloorAppearance'>
+									<Material diffuseColor='0.4 0.3 0.5' ambientIntensity='0.4' shininess='0.3' specularColor='0.6 0.5 0.7' />
+								</Appearance>
+								<Box size='10000 1 10000' />
+							</Shape>
+						</Transform>
+						
+						<!-- Decorative circular patterns on floor around each cube -->
+						<!-- Circle for Cube 1 (Orange) -->
+						<Transform translation='-600 0.2 -600'>
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.9 0.5 0.1' emissiveColor='0.2 0.1 0.05' transparency='0.6' />
+								</Appearance>
+								<Cylinder radius='300' height='0.1' />
+							</Shape>
+						</Transform>
+						<!-- Circle for Cube 2 (Cyan) -->
+						<Transform translation='600 0.2 -600'>
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.2 0.8 0.9' emissiveColor='0.05 0.2 0.25' transparency='0.6' />
+								</Appearance>
+								<Cylinder radius='300' height='0.1' />
+							</Shape>
+						</Transform>
+						<!-- Circle for Cube 3 (Green) -->
+						<Transform translation='-600 0.2 600'>
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.2 0.9 0.3' emissiveColor='0.05 0.2 0.1' transparency='0.6' />
+								</Appearance>
+								<Cylinder radius='300' height='0.1' />
+							</Shape>
+						</Transform>
+						<!-- Circle for Cube 4 (Magenta) -->
+						<Transform translation='600 0.2 600'>
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.9 0.2 0.7' emissiveColor='0.2 0.05 0.15' transparency='0.6' />
+								</Appearance>
+								<Cylinder radius='300' height='0.1' />
+							</Shape>
+						</Transform>
+						
+						<!-- Decorative grid pattern on floor -->
+						<Transform translation='0 0.1 0'>
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.5 0.4 0.6' emissiveColor='0.1 0.1 0.15' />
+								</Appearance>
+								<IndexedLineSet coordIndex='0 1 -1 2 3 -1 4 5 -1 6 7 -1 8 9 -1 10 11 -1 12 13 -1 14 15 -1'>
+									<Coordinate point='-2000 0 -2000, 2000 0 -2000, -2000 0 0, 2000 0 0, -2000 0 2000, 2000 0 2000, -2000 0 -2000, -2000 0 2000, 0 0 -2000, 0 0 2000, 2000 0 -2000, 2000 0 2000' />
+								</IndexedLineSet>
+							</Shape>
+						</Transform>
+
+						<!-- Sculpture 1: The Caves of Moria - Orange Cube -->
+						<Transform DEF='Sculpture1' translation='-600 0 -600'>
+							<!-- Decorative ring around cube - Torus replaced with Cylinder for compatibility -->
+							<Transform translation='0 100 0' rotation='1 0 0 1.5708'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.9 0.5 0.1' emissiveColor='0.3 0.15 0.05' transparency='0.5' />
+									</Appearance>
+									<Cylinder radius='135' height='30' />
+								</Shape>
+							</Transform>
+							<!-- Floating energy orbs around cube -->
+							<Transform translation='-250 150 -250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='1.0 0.7 0.3' emissiveColor='0.8 0.5 0.2' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<Transform translation='250 150 250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='1.0 0.7 0.3' emissiveColor='0.8 0.5 0.2' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<!-- Pedestal -->
+							<Transform translation='0 -100 0'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.9 0.5 0.1' emissiveColor='0.3 0.15 0.05' shininess='0.5' specularColor='1.0 0.7 0.3' />
+									</Appearance>
+									<Box size='240 20 240' />
+								</Shape>
+							</Transform>
+							<!-- Glow effect -->
+							<Transform translation='0 0 0' scale='1.1 1.1 1.1'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.9 0.5 0.1' emissiveColor='0.4 0.2 0.1' transparency='0.7' />
+									</Appearance>
+									<Box size='200 200 200' />
+								</Shape>
+							</Transform>
+							<Shape>
+								<Appearance DEF='Sculpture1Appearance'>
+									<Material diffuseColor='0.9 0.5 0.1' emissiveColor='0.2 0.1 0.05' shininess='0.95' specularColor='1.0 0.7 0.3' />
+								</Appearance>
+								<Box size='200 200 200' />
+							</Shape>
+							<Billboard axisOfRotation='0 1 0'>
+								<Transform translation='0 200 0' rotation='1 0 0 -0.5' scale="100 100 100">
+									<Shape>
+										<Appearance>
+											<Material ambientIntensity="0.0933" diffuseColor='0.9 0.5 0.1' shininess='0.51'
+												specularColor='0.9 0.5 0.1' emissiveColor='0.9 0.5 0.1' />
+										</Appearance>
+										<Text string='"The Caves of Moria"' solid="false">
+											<FontStyle family='"SERIF"' style="BOLD" size="1" horizontal="true"
+												justify='"BEGIN"' leftToRight="true" spacing="1" topToBottom="true" />
+										</Text>
+									</Shape>
+								</Transform>
+							</Billboard>
+						</Transform>
+
+						<!-- Sculpture 2: The Caves of Khazad-dûm - Cyan Cube -->
+						<Transform DEF='Sculpture2' translation='600 0 -600'>
+							<!-- Decorative ring around cube - Torus replaced with Cylinder for compatibility -->
+							<Transform translation='0 100 0' rotation='1 0 0 1.5708'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.2 0.8 0.9' emissiveColor='0.05 0.2 0.25' transparency='0.5' />
+									</Appearance>
+									<Cylinder radius='135' height='30' />
+								</Shape>
+							</Transform>
+							<!-- Floating energy orbs around cube -->
+							<Transform translation='250 150 -250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.3 0.9 1.0' emissiveColor='0.1 0.4 0.5' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<Transform translation='-250 150 250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.3 0.9 1.0' emissiveColor='0.1 0.4 0.5' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<!-- Pedestal -->
+							<Transform translation='0 -100 0'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.2 0.8 0.9' emissiveColor='0.05 0.3 0.35' shininess='0.5' specularColor='0.4 0.9 1.0' />
+									</Appearance>
+									<Box size='240 20 240' />
+								</Shape>
+							</Transform>
+							<!-- Glow effect -->
+							<Transform translation='0 0 0' scale='1.1 1.1 1.1'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.2 0.8 0.9' emissiveColor='0.1 0.3 0.35' transparency='0.7' />
+									</Appearance>
+									<Box size='200 200 200' />
+								</Shape>
+							</Transform>
+							<Shape>
+								<Appearance DEF='Sculpture2Appearance'>
+									<Material diffuseColor='0.2 0.8 0.9' emissiveColor='0.05 0.2 0.25' shininess='0.95' specularColor='0.4 0.9 1.0' />
+								</Appearance>
+								<Box size='200 200 200' />
+							</Shape>
+							<Billboard axisOfRotation='0 1 0'>
+								<Transform translation='0 200 0' rotation='1 0 0 -0.5' scale="100 100 100">
+									<Shape>
+										<Appearance>
+											<Material ambientIntensity="0.0933" diffuseColor='0.2 0.8 0.9' shininess='0.51'
+												specularColor='0.2 0.8 0.9' emissiveColor='0.2 0.8 0.9' />
+										</Appearance>
+										<Text string='"The Caves of Khazad-dûm"' solid="false">
+											<FontStyle family='"SERIF"' style="BOLD" size="1" horizontal="true"
+												justify='"BEGIN"' leftToRight="true" spacing="1" topToBottom="true" />
+										</Text>
+									</Shape>
+								</Transform>
+							</Billboard>
+						</Transform>
+
+						<!-- Sculpture 3: The Tales of Samwise Gamgee - Green Cube -->
+						<Transform DEF='Sculpture3' translation='-600 0 600'>
+							<!-- Decorative ring around cube - Torus replaced with Cylinder for compatibility -->
+							<Transform translation='0 100 0' rotation='1 0 0 1.5708'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.2 0.9 0.3' emissiveColor='0.05 0.2 0.1' transparency='0.5' />
+									</Appearance>
+									<Cylinder radius='135' height='30' />
+								</Shape>
+							</Transform>
+							<!-- Floating energy orbs around cube -->
+							<Transform translation='-250 150 250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.3 1.0 0.5' emissiveColor='0.1 0.5 0.2' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<Transform translation='250 150 -250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.3 1.0 0.5' emissiveColor='0.1 0.5 0.2' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<!-- Pedestal -->
+							<Transform translation='0 -100 0'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.2 0.9 0.3' emissiveColor='0.05 0.3 0.1' shininess='0.5' specularColor='0.4 1.0 0.5' />
+									</Appearance>
+									<Box size='240 20 240' />
+								</Shape>
+							</Transform>
+							<!-- Glow effect -->
+							<Transform translation='0 0 0' scale='1.1 1.1 1.1'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.2 0.9 0.3' emissiveColor='0.1 0.4 0.15' transparency='0.7' />
+									</Appearance>
+									<Box size='200 200 200' />
+								</Shape>
+							</Transform>
+							<Shape>
+								<Appearance DEF='Sculpture3Appearance'>
+									<Material diffuseColor='0.2 0.9 0.3' emissiveColor='0.05 0.2 0.1' shininess='0.95' specularColor='0.4 1.0 0.5' />
+								</Appearance>
+								<Box size='200 200 200' />
+							</Shape>
+							<Billboard axisOfRotation='0 1 0'>
+								<Transform translation='0 200 0' rotation='1 0 0 -0.5' scale="100 100 100">
+									<Shape>
+										<Appearance>
+											<Material ambientIntensity="0.0933" diffuseColor='0.2 0.9 0.3' shininess='0.51'
+												specularColor='0.2 0.9 0.3' emissiveColor='0.2 0.9 0.3' />
+										</Appearance>
+										<Text string='"Tales of Samwise Gamgee"' solid="false">
+											<FontStyle family='"SERIF"' style="BOLD" size="1" horizontal="true"
+												justify='"BEGIN"' leftToRight="true" spacing="1" topToBottom="true" />
+										</Text>
+									</Shape>
+								</Transform>
+							</Billboard>
+						</Transform>
+
+						<!-- Sculpture 4: The Glory of Gondor - Magenta Cube -->
+						<Transform DEF='Sculpture4' translation='600 0 600'>
+							<!-- Decorative ring around cube - Torus replaced with Cylinder for compatibility -->
+							<Transform translation='0 100 0' rotation='1 0 0 1.5708'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.9 0.2 0.7' emissiveColor='0.2 0.05 0.15' transparency='0.5' />
+									</Appearance>
+									<Cylinder radius='135' height='30' />
+								</Shape>
+							</Transform>
+							<!-- Floating energy orbs around cube -->
+							<Transform translation='250 150 250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='1.0 0.4 0.9' emissiveColor='0.5 0.1 0.4' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<Transform translation='-250 150 -250'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='1.0 0.4 0.9' emissiveColor='0.5 0.1 0.4' transparency='0.4' />
+									</Appearance>
+									<Sphere radius='25' />
+								</Shape>
+							</Transform>
+							<!-- Pedestal -->
+							<Transform translation='0 -100 0'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.9 0.2 0.7' emissiveColor='0.3 0.05 0.2' shininess='0.5' specularColor='1.0 0.4 0.9' />
+									</Appearance>
+									<Box size='240 20 240' />
+								</Shape>
+							</Transform>
+							<!-- Glow effect -->
+							<Transform translation='0 0 0' scale='1.1 1.1 1.1'>
+								<Shape>
+									<Appearance>
+										<Material diffuseColor='0.9 0.2 0.7' emissiveColor='0.4 0.1 0.3' transparency='0.7' />
+									</Appearance>
+									<Box size='200 200 200' />
+								</Shape>
+							</Transform>
+							<Shape>
+								<Appearance DEF='Sculpture4Appearance'>
+									<Material diffuseColor='0.9 0.2 0.7' emissiveColor='0.2 0.05 0.15' shininess='0.95' specularColor='1.0 0.4 0.9' />
+								</Appearance>
+								<Box size='200 200 200' />
+							</Shape>
+							<Billboard axisOfRotation='0 1 0'>
+								<Transform translation='0 200 0' rotation='1 0 0 -0.5' scale="100 100 100">
+									<Shape>
+										<Appearance>
+											<Material ambientIntensity="0.0933" diffuseColor='0.9 0.2 0.7' shininess='0.51'
+												specularColor='0.9 0.2 0.7' emissiveColor='0.9 0.2 0.7' />
+										</Appearance>
+										<Text string='"The Glory of Gondor"' solid="false">
+											<FontStyle family='"SERIF"' style="BOLD" size="1" horizontal="true"
+												justify='"BEGIN"' leftToRight="true" spacing="1" topToBottom="true" />
+										</Text>
+									</Shape>
+								</Transform>
+							</Billboard>
+						</Transform>
+
+						<!-- Audio System - MUST BE ACTIVE (not commented) -->
+						<AudioDestination channelInterpretation='speakers'>
+							<!-- ListenerPointSource removed - causes error in X_ITE -->
+
+							<!-- Sculpture 1 Audio: The Caves of Moria -->
+							<SpatialSound description="The SpatialSound node: SpatialSound1 - The Caves of Moria" location='-600 0 -600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound1: Gain1" gain='0.8'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Caves of Moria' loop='true'
+											url='"sound/lordOftheRings/the-caves-of-moria-460016.mp3" "sound/violin.mp3" "sound/violin.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+							<!-- Sculpture 2 Audio: The Caves of Khazad-dûm -->
+							<SpatialSound description="The SpatialSound node: SpatialSound2 - The Caves of Khazad-dûm" location='600 0 -600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound2: Gain2" gain='0.7'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Caves of Khazad-dûm' loop='true'
+											url='"sound/lordOftheRings/the-caves-of-khazad-dum-314281.mp3" "sound/beat.mp3" "sound/beat.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+							<!-- Sculpture 3 Audio: The Tales of Samwise Gamgee -->
+							<SpatialSound description="The SpatialSound node: SpatialSound3 - The Tales of Samwise Gamgee" location='-600 0 600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound3: Gain3" gain='0.75'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Tales of Samwise Gamgee' loop='true'
+											url='"sound/lordOftheRings/the-tales-of-samwise-gamgee-339193.mp3" "sound/techno_beat.mp3" "sound/techno_beat.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+							<!-- Sculpture 4 Audio: The Glory of Gondor -->
+							<SpatialSound description="The SpatialSound node: SpatialSound4 - The Glory of Gondor" location='600 0 600'
+								direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
+								distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1'
+								rolloffFactor='2'>
+								<Gain description="The Gain node of SpatialSound4: Gain4" gain='0.8'>
+									<Sound location='0 0 0'>
+										<AudioClip description='AudioClip is the Sound Source - The Glory of Gondor' loop='true'
+											url='"sound/lordOftheRings/the-glory-of-gondor-435113.mp3" "sound/saxophone.mp3" "sound/saxophone.wav"'
+											pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+									</Sound>
+								</Gain>
+							</SpatialSound>
+
+						</AudioDestination>
+
+						</Scene>
+					</X3D>
+			</x3d-canvas>
+
+			<div class="scene-controls">
+				<button id="audioStartButton" type="button">Start audio &amp; camera tour</button>
+			</div>
+		</section>
+
+		<section class="graph-block">
+			<h2>Audio Node Graph</h2>
+			<p class="graph-hint">Chains light up when a source is audible (● active, ▶ loudest). Idle nodes stay gray.</p>
+			<div id="mynetwork" aria-label="Audio node graph"></div>
+		</section>
+
+	</div>
+
+	<script type='text/javascript' src='soundController_MultiSourceSpatialAudioNavigationScene_XITE.js'></script>
+
+	<script type="text/javascript">
+		//<![CDATA[
+		// X_ITE renders automatically - no need to force render
+		document.addEventListener('DOMContentLoaded', function() {
+			var canvas = document.querySelector('x3d-canvas');
+			if (!canvas) {
+				return;
+			}
+
+			var initAttempts = 0;
+			var maxInitAttempts = 100;
+			var initInterval = setInterval(function() {
+				initAttempts++;
+				if (initAttempts > maxInitAttempts) {
+					clearInterval(initInterval);
+					return;
+				}
+
+				if (canvas.browser) {
+					clearInterval(initInterval);
+					try {
+						if (typeof canvas.browser.setBrowserOption === 'function') {
+							canvas.browser.setBrowserOption('AutoUpdate', true);
+						}
+					} catch (e) {
+						// Ignore errors
+					}
+				}
+			}, 50);
+		});
+		
+		// Removed forceX_ITERender function - X_ITE renders automatically
+		/*
+		function forceX_ITERender(canvas) {
+			if (!canvas || !canvas.browser) {
+				console.log("❌ forceX_ITERender: canvas or browser not found");
+				return;
+			}
+			
+			// Prevent infinite recursion
+			if (forceRenderInProgress) {
+				return;
+			}
+			forceRenderInProgress = true;
+			
+			var browser = canvas.browser;
+			
+			console.log("🔧 forceX_ITERender: Starting render attempt...");
+			
+			// CRITICAL: Set AutoUpdate to true for X_ITE to render automatically
+			try {
+				if (typeof browser.setBrowserOption === 'function') {
+					browser.setBrowserOption("AutoUpdate", true);
+					console.log("✅ AutoUpdate set to true");
+				} else {
+					console.log("❌ browser.setBrowserOption not available");
+				}
+				
+				// Try to set update mode directly on canvas
+				if (canvas.setAttribute) {
+					canvas.setAttribute('update', 'auto');
+					console.log("✅ Canvas update attribute set to 'auto'");
+				}
+				
+				// Try to access X_ITE's internal update mechanism
+				if (typeof window.X !== 'undefined' && window.X.Browser) {
+					var browsers = window.X.Browser.getBrowsers();
+					if (browsers && browsers.length > 0) {
+						var xBrowser = browsers[0];
+						if (typeof xBrowser.setBrowserOption === 'function') {
+							xBrowser.setBrowserOption("AutoUpdate", true);
+							console.log("✅ X.Browser AutoUpdate set to true");
+						}
+					}
+				}
+			} catch(e) {
+				console.error("❌ Error setting AutoUpdate:", e);
+			}
+			
+			// Check WebGL canvas dimensions
+			try {
+				var shadowRoot = canvas.shadowRoot;
+				if (shadowRoot) {
+					var webglCanvas = shadowRoot.querySelector('canvas');
+					if (webglCanvas) {
+						console.log("✅ WebGL canvas found:", webglCanvas.width, "x", webglCanvas.height);
+						var gl = webglCanvas.getContext('webgl') || webglCanvas.getContext('webgl2');
+						if (gl) {
+							console.log("✅ WebGL context found");
+							// Force clear with background color
+							gl.clearColor(0.6, 0.8, 1.0, 1.0);
+							gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+							console.log("✅ WebGL canvas cleared with background color");
+						} else {
+							console.log("❌ WebGL context not found");
+						}
+					} else {
+						console.log("❌ WebGL canvas not found in shadowRoot");
+					}
+				} else {
+					console.log("❌ shadowRoot not found");
+				}
+			} catch(e) {
+				console.error("❌ Error checking WebGL:", e);
+			}
+			
+			// Check scene structure
+			if (browser.currentScene) {
+				var scene = browser.currentScene;
+				console.log("✅ browser.currentScene found");
+				try {
+					var sceneElement = canvas.querySelector('Scene');
+					if (sceneElement) {
+						var children = sceneElement.children;
+						console.log("✅ Scene element found with", children.length, "children");
+						if (!children || children.length === 0) {
+							console.error("❌ Scene has no children!");
+						} else {
+							// Log first few children
+							for (var i = 0; i < Math.min(5, children.length); i++) {
+								console.log("  - Child", i, ":", children[i].tagName);
+							}
+						}
+					} else {
+						console.log("❌ Scene element not found in DOM");
+					}
+				} catch(e) {
+					console.error("❌ Error checking scene:", e);
+				}
+			} else {
+				console.log("❌ browser.currentScene is null");
+			}
+			
+			// Try to access and call render methods (minimal logging)
+			if (typeof browser.startRenderLoop === 'function') {
+				browser.startRenderLoop();
+			}
+			if (typeof browser.render === 'function') {
+				browser.render();
+			}
+			if (typeof browser.update === 'function') {
+				browser.update();
+			}
+			if (typeof browser.draw === 'function') {
+				browser.draw();
+			}
+			
+			if (browser.currentScene) {
+				var scene = browser.currentScene;
+				if (typeof scene.invalidate === 'function') {
+					scene.invalidate();
+				}
+				if (typeof scene.requestRedraw === 'function') {
+					scene.requestRedraw();
+				}
+				if (typeof scene.update === 'function') {
+					scene.update();
+				}
+			}
+			
+			// X_ITE uses Symbol-based properties - try to access them (silently to avoid crashes)
+			try {
+				var browserKeys = Reflect.ownKeys(browser);
+				// Look for render-related Symbols (limit to first 10 to avoid crashes)
+				for (var i = 0; i < Math.min(10, browserKeys.length); i++) {
+					var key = browserKeys[i];
+					if (typeof key === 'symbol') {
+						var keyStr = key.toString();
+						if (keyStr.includes('render') || keyStr.includes('draw') || keyStr.includes('update') || keyStr.includes('loop')) {
+							try {
+								var value = browser[key];
+								if (typeof value === 'function') {
+									value(); // Try to call it silently
+								}
+							} catch(e) {
+								// Silently ignore errors
+							}
+						}
+					}
+				}
+			} catch(e) {
+				// Silently ignore errors
+			}
+			
+			// Try to access X global and force render (silently)
+			if (typeof window.X !== 'undefined' && window.X.Browser) {
+				try {
+					var browsers = window.X.Browser.getBrowsers();
+					if (browsers && browsers.length > 0) {
+						var xBrowser = browsers[0];
+						if (typeof xBrowser.render === 'function') {
+							xBrowser.render();
+						}
+						if (typeof xBrowser.startRenderLoop === 'function') {
+							xBrowser.startRenderLoop();
+						}
+					}
+				} catch(e) {
+					// Silently ignore errors
+				}
+			}
+			
+			// X_ITE might need explicit scene activation (silently)
+			try {
+				if (browser.currentScene) {
+					var scene = browser.currentScene;
+					// Try to set scene as active
+					if (typeof scene.setActive === 'function') {
+						scene.setActive(true);
+					}
+					if (typeof scene.activate === 'function') {
+						scene.activate();
+					}
+				}
+			} catch(e) {
+				// Silently ignore errors
+			}
+			
+			// Force multiple events that might trigger rendering (silently)
+			// NOTE: Do NOT dispatch 'load' or 'resize' events as they cause infinite recursion!
+			// window.dispatchEvent(new Event('resize')); // REMOVED - causes recursion with vis.js
+			// canvas.dispatchEvent(new Event('resize')); // REMOVED - causes recursion
+			// canvas.dispatchEvent(new Event('load')); // REMOVED - causes infinite recursion
+			canvas.dispatchEvent(new CustomEvent('x3d-ready', { bubbles: true }));
+			canvas.dispatchEvent(new CustomEvent('x3d-load', { bubbles: true }));
+			
+			// Reset flag after a delay to allow future calls
+			setTimeout(function() {
+				forceRenderInProgress = false;
+			}, 1000);
+			
+			// Try to access canvas element directly and trigger rendering
+			// NOTE: Don't clear the canvas manually - let X_ITE do the rendering
+			setTimeout(function() {
+				try {
+					var shadowRoot = canvas.shadowRoot;
+					if (shadowRoot) {
+						var webglCanvas = shadowRoot.querySelector('canvas');
+						if (webglCanvas) {
+							var gl = webglCanvas.getContext('webgl') || webglCanvas.getContext('webgl2');
+							if (gl) {
+								// Don't clear manually - X_ITE should render the scene
+								// Instead, check if X_ITE has rendered anything
+								var pixels = new Uint8Array(4);
+								gl.readPixels(webglCanvas.width / 2, webglCanvas.height / 2, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+								console.log("📊 Pixel color after 100ms (X_ITE should have rendered):", pixels[0], pixels[1], pixels[2], pixels[3]);
+								
+								if (pixels[0] === 0 && pixels[1] === 0 && pixels[2] === 0 && pixels[3] === 0) {
+									console.log("⚠️ X_ITE has not rendered yet - canvas is still black");
+									console.log("🔧 Attempting to force render...");
+									
+									// Try to force a render by accessing browser methods
+									if (canvas.browser) {
+										// Use Reflect.ownKeys to find Symbol-based properties
+										var browserKeys = Reflect.ownKeys(canvas.browser);
+										console.log("🔍 Browser keys (including Symbols):", browserKeys.length, "keys found");
+										
+										// Try common render method names
+										var renderMethods = ['render', 'draw', 'update', 'display', 'redraw', 'refresh', 'startRenderLoop', 'requestRedraw'];
+										for (var i = 0; i < renderMethods.length; i++) {
+											if (typeof canvas.browser[renderMethods[i]] === 'function') {
+												console.log("✅ Found render method:", renderMethods[i]);
+												try {
+													canvas.browser[renderMethods[i]]();
+													console.log("✅ Called", renderMethods[i], "()");
+												} catch(e) {
+													console.error("❌ Error calling", renderMethods[i], ":", e);
+												}
+											}
+										}
+										
+										// Try to find render-related Symbols
+										var foundRenderMethods = [];
+										for (var i = 0; i < Math.min(50, browserKeys.length); i++) {
+											var key = browserKeys[i];
+											var keyStr = String(key);
+											if (keyStr.includes('render') || keyStr.includes('draw') || keyStr.includes('update') || keyStr.includes('loop') || keyStr.includes('display') || keyStr.includes('redraw')) {
+												try {
+													var value = canvas.browser[key];
+													if (typeof value === 'function') {
+														foundRenderMethods.push(keyStr);
+														console.log("✅ Found Symbol-based render method:", keyStr);
+														try {
+															value();
+															console.log("✅ Called Symbol method:", keyStr);
+														} catch(e) {
+															console.log("⚠️ Error calling Symbol method:", keyStr, e.message);
+														}
+													}
+												} catch(e) {
+													// Ignore errors
+												}
+											}
+										}
+										if (foundRenderMethods.length === 0) {
+											console.log("⚠️ No render-related Symbol methods found");
+											// Log first 10 keys to see what we have
+											console.log("🔍 First 10 browser keys:", browserKeys.slice(0, 10).map(function(k) { return String(k); }));
+										}
+										
+										// Try to trigger render via requestAnimationFrame (multiple frames)
+										console.log("🔧 Trying requestAnimationFrame to trigger render...");
+										var rafAttempts = 0;
+										var maxRafAttempts = 10;
+										function tryRender() {
+											rafAttempts++;
+											requestAnimationFrame(function() {
+												try {
+													var pixels2 = new Uint8Array(4);
+													gl.readPixels(webglCanvas.width / 2, webglCanvas.height / 2, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels2);
+													console.log("📊 Pixel color after requestAnimationFrame #" + rafAttempts + ":", pixels2[0], pixels2[1], pixels2[2], pixels2[3]);
+													
+													if ((pixels2[0] === 0 && pixels2[1] === 0 && pixels2[2] === 0 && pixels2[3] === 0) && rafAttempts < maxRafAttempts) {
+														// Still black, try again
+														tryRender();
+													} else if (pixels2[0] !== 0 || pixels2[1] !== 0 || pixels2[2] !== 0 || pixels2[3] !== 0) {
+														console.log("✅ RENDERING SUCCESS after", rafAttempts, "requestAnimationFrame calls!");
+													}
+												} catch(e) {
+													console.error("❌ Error in requestAnimationFrame:", e);
+												}
+											});
+										}
+										tryRender();
+										
+										// Also try to trigger via user interaction simulation
+										console.log("🔧 Trying to simulate user interaction to trigger render...");
+										setTimeout(function() {
+											try {
+												// Try mouse move event
+												var mouseEvent = new MouseEvent('mousemove', {
+													bubbles: true,
+													cancelable: true,
+													view: window,
+													clientX: 400,
+													clientY: 300
+												});
+												canvas.dispatchEvent(mouseEvent);
+												
+												// Try focus event
+												canvas.focus();
+												
+												// Try click event (but don't actually click)
+												var clickEvent = new MouseEvent('click', {
+													bubbles: true,
+													cancelable: true,
+													view: window
+												});
+												canvas.dispatchEvent(clickEvent);
+												
+												console.log("✅ Dispatched user interaction events");
+											} catch(e) {
+												console.error("❌ Error dispatching events:", e);
+											}
+										}, 200);
+									}
+								}
+							} else {
+								console.log("❌ WebGL context not available after 100ms");
+							}
+						} else {
+							console.log("❌ WebGL canvas not found after 100ms");
+						}
+					} else {
+						console.log("❌ shadowRoot not found after 100ms");
+					}
+				} catch(e) {
+					console.error("❌ Error in 100ms timeout:", e);
+				}
+			}, 100);
+			
+			// Render start attempts completed (silently)
+			
+			// CRITICAL: Start continuous render loop (silent to avoid crashes)
+			var renderAttempts = 0;
+			var maxRenderAttempts = 200; // Try for 20 seconds (200 * 100ms)
+			var renderInterval = setInterval(function() {
+				renderAttempts++;
+				if (renderAttempts > maxRenderAttempts) {
+					clearInterval(renderInterval);
+					return;
+				}
+				
+				try {
+					if (canvas && canvas.browser) {
+						var browser = canvas.browser;
+						
+						// Try all possible render methods (silently)
+						if (typeof browser.render === 'function') {
+							browser.render();
+						}
+						if (browser.currentScene) {
+							var scene = browser.currentScene;
+							if (typeof scene.invalidate === 'function') {
+								scene.invalidate();
+							}
+							if (typeof scene.requestRedraw === 'function') {
+								scene.requestRedraw();
+							}
+						}
+						
+						// Check if rendering worked by reading pixel (only every 10 attempts to reduce overhead)
+						if (renderAttempts % 10 === 0) {
+							var shadowRoot = canvas.shadowRoot;
+							if (shadowRoot) {
+								var webglCanvas = shadowRoot.querySelector('canvas');
+								if (webglCanvas) {
+									var gl = webglCanvas.getContext('webgl') || webglCanvas.getContext('webgl2');
+									if (gl) {
+										var pixels = new Uint8Array(4);
+										gl.readPixels(webglCanvas.width / 2, webglCanvas.height / 2, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+										if (pixels[0] !== 0 || pixels[1] !== 0 || pixels[2] !== 0 || pixels[3] !== 0) {
+											console.log("✅ RENDERING SUCCESS! Pixel color:", pixels[0], pixels[1], pixels[2], pixels[3]);
+											clearInterval(renderInterval);
+										}
+									}
+								}
+							}
+						}
+					}
+				} catch(e) {
+					// Silently ignore errors to prevent crashes
+				}
+			}, 100); // Try every 100ms
+		}
+		*/
+		// Dynamic Audio Graph Visualization with Real-time Updates
+		var network, nodes, edges;
+		var audioLevels = {}; // Store audio levels for each node
+		var sculptureNames = ['The Caves of Moria', 'The Caves of Khazad-dûm', 'Tales of Samwise Gamgee', 'The Glory of Gondor'];
+		// Same RGB as SculptureNAppearance diffuseColor in the X3D scene
+		var SCENE_SOURCE_COLORS = ['#e6801a', '#33cce6', '#33e64d', '#e633b3'];
+
+		function hexToRgba(hex, alpha) {
+			var h = hex.replace('#', '');
+			var r = parseInt(h.substring(0, 2), 16);
+			var g = parseInt(h.substring(2, 4), 16);
+			var b = parseInt(h.substring(4, 6), 16);
+			return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+		}
+
+		// Initialize nodes with base colors
+		function initializeNodes() {
+			var nodeArray = [];
+			var nodeId = 1;
+			
+			// Create nodes for each sculpture (4 sculptures)
+			for (var i = 0; i < 4; i++) {
+				var sculptureName = sculptureNames[i];
+				var baseId = nodeId;
+				
+				var srcHex = SCENE_SOURCE_COLORS[i];
+				var srcBg = hexToRgba(srcHex, 0.22);
+				var srcBorder = hexToRgba(srcHex, 1);
+				var nodeFont = { color: '#0f172a', size: 14, face: 'Segoe UI, Arial, sans-serif' };
+
+				nodeArray.push({
+					id: nodeId++,
+					label: 'AudioClip' + (i+1) + '\n' + sculptureName,
+					shape: 'box',
+					color: { background: srcBg, border: srcBorder, highlight: { background: hexToRgba(srcHex, 0.35), border: srcBorder }},
+					font: nodeFont,
+					sculptureIndex: i,
+					nodeType: 'audioClip'
+				});
+
+				nodeArray.push({
+					id: nodeId++,
+					label: 'Gain' + (i+1),
+					shape: 'box',
+					color: { background: '#e2e8f0', border: '#94a3b8', highlight: { background: '#f1f5f9', border: '#64748b' }},
+					font: nodeFont,
+					sculptureIndex: i,
+					nodeType: 'gain'
+				});
+
+				nodeArray.push({
+					id: nodeId++,
+					label: 'SpatialSound' + (i+1),
+					shape: 'box',
+					color: { background: srcBg, border: srcBorder, highlight: { background: hexToRgba(srcHex, 0.35), border: srcBorder }},
+					font: nodeFont,
+					sculptureIndex: i,
+					nodeType: 'spatialSound'
+				});
+				
+				audioLevels[i] = {
+					audioClip: baseId,
+					gain: baseId + 1,
+					spatialSound: baseId + 2,
+					level: 0,
+					labelAudio: 'AudioClip' + (i + 1),
+					labelGain: 'Gain' + (i + 1),
+					labelSpatial: 'SpatialSound' + (i + 1),
+					sculptureName: sculptureName
+				};
+			}
+			
+			// AudioDestination node
+			nodeArray.push({
+				id: 13,
+				label: 'AudioDestination',
+				shape: 'box',
+				color: { background: '#334155', border: '#0f172a', highlight: { background: '#475569', border: '#0f172a' }},
+				font: { color: '#f8fafc', size: 16, face: 'Segoe UI, Arial, sans-serif', bold: true },
+				nodeType: 'destination'
+			});
+			
+			return new vis.DataSet(nodeArray);
+		}
+
+		// Initialize edges
+		function initializeEdges() {
+			var edgeArray = [];
+			for (var i = 0; i < 4; i++) {
+				var baseId = i * 3 + 1;
+				edgeArray.push(
+					{ from: baseId, to: baseId + 1, id: 'edge' + baseId + '-' + (baseId+1), color: { color: '#666', highlight: '#ff6b6b' } },
+					{ from: baseId + 1, to: baseId + 2, id: 'edge' + (baseId+1) + '-' + (baseId+2), color: { color: '#666', highlight: '#ff6b6b' } },
+					{ from: baseId + 2, to: 13, id: 'edge' + (baseId+2) + '-13', color: { color: '#666', highlight: '#ff6b6b' } }
+				);
+			}
+			return new vis.DataSet(edgeArray);
+		}
+
+		// Calculate audio level from analyser data
+		function getAudioLevel(analyser, dataArray) {
+			if (!analyser || !dataArray) return 0;
+			analyser.getByteFrequencyData(dataArray);
+			var sum = 0;
+			for (var i = 0; i < dataArray.length; i++) {
+				sum += dataArray[i];
+			}
+			return sum / dataArray.length / 255; // Normalize to 0-1
+		}
+
+		var GRAPH_ACTIVE_THRESHOLD = 0.06;
+
+		function graphNodeStyle(i, level, isDominant) {
+			var srcHex = SCENE_SOURCE_COLORS[i];
+			var isWorking = level >= GRAPH_ACTIVE_THRESHOLD;
+
+			if (!isWorking) {
+				return {
+					color: {
+						background: '#f1f5f9',
+						border: '#cbd5e1',
+						highlight: { background: '#e2e8f0', border: '#94a3b8' }
+					},
+					font: { color: '#94a3b8', size: 13, face: 'Segoe UI, Arial, sans-serif', bold: false },
+					borderWidth: 1,
+					shadow: false,
+					value: 8
+				};
+			}
+
+			var fillAlpha = 0.35 + Math.min(0.45, level * 1.2);
+			var borderW = isDominant ? 4 : 3;
+
+			return {
+				color: {
+					background: hexToRgba(srcHex, fillAlpha),
+					border: srcHex,
+					highlight: { background: hexToRgba(srcHex, 0.65), border: srcHex }
+				},
+				font: {
+					color: '#0f172a',
+					size: isDominant ? 16 : 14,
+					face: 'Segoe UI, Arial, sans-serif',
+					bold: isDominant
+				},
+				borderWidth: borderW,
+				shadow: isDominant ? { enabled: true, color: hexToRgba(srcHex, 0.45), size: 14, x: 0, y: 0 } : false,
+				value: 12 + Math.floor(level * 40)
+			};
+		}
+
+		// Update graph — highlight full chain (AudioClip → Gain → SpatialSound) per working source
+		window.updateAudioGraph = function(soundNodesArray) {
+			if (!nodes || !network || !soundNodesArray) return;
+
+			if (!audioLevels || Object.keys(audioLevels).length === 0) {
+				for (var initI = 0; initI < 4; initI++) {
+					if (!audioLevels[initI]) {
+						var bid = initI * 3 + 1;
+						audioLevels[initI] = {
+							audioClip: bid, gain: bid + 1, spatialSound: bid + 2, level: 0,
+							labelAudio: 'AudioClip' + (initI + 1), labelGain: 'Gain' + (initI + 1),
+							labelSpatial: 'SpatialSound' + (initI + 1),
+							sculptureName: sculptureNames[initI]
+						};
+					}
+				}
+			}
+
+			var updates = [];
+			var maxLevel = 0;
+			var maxIndex = -1;
+			var anyWorking = false;
+
+			for (var i = 0; i < soundNodesArray.length && i < 4; i++) {
+				if (!audioLevels[i]) {
+					var baseId = i * 3 + 1;
+					audioLevels[i] = {
+						audioClip: baseId, gain: baseId + 1, spatialSound: baseId + 2, level: 0,
+						labelAudio: 'AudioClip' + (i + 1), labelGain: 'Gain' + (i + 1),
+						labelSpatial: 'SpatialSound' + (i + 1),
+						sculptureName: sculptureNames[i]
+					};
+				}
+
+				var audioNode = soundNodesArray[i];
+				var level = 0;
+				if (audioNode.analyser && audioNode.analyserDataArray) {
+					level = getAudioLevel(audioNode.analyser, audioNode.analyserDataArray);
+					audioLevels[i].level = level;
+				}
+
+				if (level > maxLevel) {
+					maxLevel = level;
+					maxIndex = i;
+				}
+				if (level >= GRAPH_ACTIVE_THRESHOLD) {
+					anyWorking = true;
+				}
+			}
+
+			for (var j = 0; j < soundNodesArray.length && j < 4; j++) {
+				var lvl = audioLevels[j].level || 0;
+				var isDominant = (j === maxIndex && maxLevel >= GRAPH_ACTIVE_THRESHOLD);
+				var isWorking = lvl >= GRAPH_ACTIVE_THRESHOLD;
+				var style = graphNodeStyle(j, lvl, isDominant);
+				var info = audioLevels[j];
+				var pctLabel = isWorking ? (isDominant ? '\n▶ ACTIVE ' + Math.round(lvl * 100) + '%' : '\n● ' + Math.round(lvl * 100) + '%') : '';
+				var tip = isWorking ? 'Audible — level ' + Math.round(lvl * 100) + '%' : 'Silent — waiting for signal';
+
+				updates.push({
+					id: info.audioClip,
+					title: tip,
+					label: info.labelAudio + '\n' + info.sculptureName + pctLabel,
+					color: style.color,
+					font: style.font,
+					borderWidth: style.borderWidth,
+					shadow: style.shadow,
+					value: style.value
+				});
+
+				var gainStyle = graphNodeStyle(j, lvl, isDominant);
+				if (isWorking) {
+					gainStyle.color.background = hexToRgba(SCENE_SOURCE_COLORS[j], 0.2 + lvl * 0.25);
+					gainStyle.color.border = SCENE_SOURCE_COLORS[j];
+				}
+				updates.push({
+					id: info.gain,
+					title: tip,
+					label: info.labelGain + (isWorking ? pctLabel : ''),
+					color: gainStyle.color,
+					font: gainStyle.font,
+					borderWidth: style.borderWidth,
+					shadow: style.shadow,
+					value: style.value
+				});
+
+				updates.push({
+					id: info.spatialSound,
+					title: tip,
+					label: info.labelSpatial + (isWorking ? pctLabel : ''),
+					color: style.color,
+					font: style.font,
+					borderWidth: style.borderWidth,
+					shadow: style.shadow,
+					value: style.value
+				});
+			}
+
+			var destStyle = anyWorking ? {
+				color: { background: '#1e40af', border: '#1d4ed8', highlight: { background: '#2563eb', border: '#1d4ed8' }},
+				font: { color: '#f8fafc', size: 16, bold: true, face: 'Segoe UI, Arial, sans-serif' },
+				borderWidth: 3,
+				shadow: { enabled: true, color: 'rgba(30,64,175,0.35)', size: 12, x: 0, y: 0 },
+				label: 'AudioDestination\n● receiving'
+			} : {
+				color: { background: '#334155', border: '#0f172a', highlight: { background: '#475569', border: '#0f172a' }},
+				font: { color: '#f8fafc', size: 16, face: 'Segoe UI, Arial, sans-serif', bold: true },
+				borderWidth: 2,
+				shadow: false,
+				label: 'AudioDestination'
+			};
+			updates.push({ id: 13, label: destStyle.label, color: destStyle.color, font: destStyle.font, borderWidth: destStyle.borderWidth, shadow: destStyle.shadow });
+
+			if (updates.length > 0) {
+				nodes.update(updates);
+			}
+
+			var edgeUpdates = [];
+			for (var e = 0; e < 4; e++) {
+				if (!audioLevels[e]) continue;
+				var eLevel = audioLevels[e].level || 0;
+				var eWorking = eLevel >= GRAPH_ACTIVE_THRESHOLD;
+				var eHex = SCENE_SOURCE_COLORS[e];
+				var eWidth = eWorking ? 2 + Math.min(4, eLevel * 8) : 1;
+				var eColor = eWorking ? hexToRgba(eHex, 0.55 + eLevel * 0.4) : '#cbd5e1';
+				var eHighlight = eWorking ? eHex : '#94a3b8';
+				var baseId = e * 3 + 1;
+				var edgeOpts = { width: eWidth, color: { color: eColor, highlight: eHighlight, hover: eHighlight } };
+				edgeUpdates.push(
+					{ id: 'edge' + baseId + '-' + (baseId + 1), width: eWidth, color: edgeOpts.color },
+					{ id: 'edge' + (baseId + 1) + '-' + (baseId + 2), width: eWidth, color: edgeOpts.color },
+					{ id: 'edge' + baseId + 2 + '-13', width: eWidth, color: edgeOpts.color }
+				);
+			}
+
+			if (edgeUpdates.length > 0) {
+				edges.update(edgeUpdates);
+			}
+		};
+
+		// Real-time Statistics (panel is in HTML #statsPanel — must run even if graph fails)
+		var audioSources = [
+			{ name: 'Source 1 — The Caves of Moria', pos: [-600, 0, -600], color: '#e6801a' },
+			{ name: 'Source 2 — The Caves of Khazad-dûm', pos: [600, 0, -600], color: '#33cce6' },
+			{ name: 'Source 3 — Tales of Samwise Gamgee', pos: [-600, 0, 600], color: '#33e64d' },
+			{ name: 'Source 4 — The Glory of Gondor', pos: [600, 0, 600], color: '#e633b3' }
+		];
+		window.audioSources = audioSources;
+
+		function calculateDistance(pos1, pos2) {
+			var dx = pos1[0] - pos2[0];
+			var dy = pos1[1] - pos2[1];
+			var dz = pos1[2] - pos2[2];
+			return Math.sqrt(dx * dx + dy * dy + dz * dz);
+		}
+
+		function xiteVec3ToArray(v) {
+			if (v == null) return null;
+			if (typeof v.x === 'number' && typeof v.y === 'number' && typeof v.z === 'number') {
+				return [v.x, v.y, v.z];
+			}
+			if (typeof v.toString === 'function') {
+				var parts = v.toString().trim().split(/[\s,]+/).map(parseFloat).filter(function(n) { return !isNaN(n); });
+				if (parts.length >= 3) return parts.slice(0, 3);
+			}
+			return null;
+		}
+
+		function xiteRotationToArray(r) {
+			if (r == null) return null;
+			if (typeof r.x === 'number') {
+				var angle = (typeof r.angle === 'number') ? r.angle : 0;
+				return [r.x, r.y, r.z, angle];
+			}
+			if (typeof r.toString === 'function') {
+				var rparts = r.toString().trim().split(/[\s,]+/).map(parseFloat).filter(function(n) { return !isNaN(n); });
+				if (rparts.length >= 4) return rparts.slice(0, 4);
+			}
+			return null;
+		}
+
+		function getGalleryCameraPose(canvas) {
+			var result = { position: null, orientation: [0, 0, 1, 0] };
+			if (!canvas) return result;
+			try {
+				var browser = canvas.browser;
+				if (browser) {
+					var vp = null;
+					if (typeof browser.getNamedNode === 'function') {
+						vp = browser.getNamedNode('GalleryViewpoint');
+					}
+					if (!vp && browser.activeViewpoint) {
+						vp = browser.activeViewpoint;
+					}
+					if (vp) {
+						var pos = xiteVec3ToArray(vp.position);
+						var ori = xiteRotationToArray(vp.orientation);
+						if (pos) result.position = pos;
+						if (ori) result.orientation = ori;
+					}
+				}
+			} catch (e) { /* ignore */ }
+			if (!result.position) {
+				var viewpoint = canvas.querySelector('Viewpoint[DEF="GalleryViewpoint"]') ||
+					canvas.querySelector('Viewpoint[def="GalleryViewpoint"]');
+				if (viewpoint) {
+					var attr = viewpoint.getAttribute('position');
+					if (attr) result.position = attr.split(/[\s,]+/).map(parseFloat).slice(0, 3);
+				}
+			}
+			return result;
+		}
+		window.getGalleryCameraPose = getGalleryCameraPose;
+
+		function updateStatistics() {
+			try {
+				var canvas = document.querySelector('x3d-canvas');
+				if (!canvas || !canvas.browser) return;
+
+				var cameraPose = getGalleryCameraPose(canvas);
+				var camPosArray = cameraPose.position;
+				if (!camPosArray || camPosArray.length < 3) return;
+				var camOrientationArray = cameraPose.orientation || [0, 0, 1, 0];
+
+				if (!window.lastCamPos) window.lastCamPos = camPosArray;
+				if (!window.lastCamTime) window.lastCamTime = Date.now();
+				var currentTime = Date.now();
+				var timeDelta = (currentTime - window.lastCamTime) / 1000;
+				var dx = camPosArray[0] - window.lastCamPos[0];
+				var dy = camPosArray[1] - window.lastCamPos[1];
+				var dz = camPosArray[2] - window.lastCamPos[2];
+				var distanceMoved = Math.sqrt(dx * dx + dy * dy + dz * dz);
+				var speed = timeDelta > 0 ? distanceMoved / timeDelta : 0;
+				window.lastCamPos = camPosArray;
+				window.lastCamTime = currentTime;
+
+				var camPosEl = document.getElementById('camPos');
+				if (camPosEl) {
+					camPosEl.innerHTML = '';
+					camPosEl.appendChild(document.createTextNode('X: ' + camPosArray[0].toFixed(1)));
+					camPosEl.appendChild(document.createElement('br'));
+					camPosEl.appendChild(document.createTextNode('Y: ' + camPosArray[1].toFixed(1)));
+					camPosEl.appendChild(document.createElement('br'));
+					camPosEl.appendChild(document.createTextNode('Z: ' + camPosArray[2].toFixed(1)));
+					camPosEl.appendChild(document.createElement('br'));
+					var speedSpan = document.createElement('span');
+					speedSpan.style.cssText = 'color: #0f766e; font-weight: bold; margin-top: 5px; display: block;';
+					speedSpan.textContent = 'Speed: ' + speed.toFixed(1) + ' units/s';
+					camPosEl.appendChild(speedSpan);
+				}
+
+				var cameraInfo = document.getElementById('cameraInfo');
+				var camOriSpan = document.getElementById('camOriSpan');
+				if (!camOriSpan && cameraInfo) {
+					var camOrientationDiv = document.createElement('div');
+					camOrientationDiv.id = 'camOrientation';
+					camOrientationDiv.style.cssText = 'margin-top: 10px; padding: 8px; border-radius: 4px;';
+					camOrientationDiv.appendChild(document.createElement('strong')).textContent = 'Camera Orientation:';
+					camOrientationDiv.appendChild(document.createElement('br'));
+					camOriSpan = document.createElement('span');
+					camOriSpan.id = 'camOriSpan';
+					camOrientationDiv.appendChild(camOriSpan);
+					cameraInfo.appendChild(camOrientationDiv);
+				}
+				if (camOriSpan) {
+					camOriSpan.innerHTML = '';
+					camOriSpan.appendChild(document.createTextNode('Axis: ' + camOrientationArray[0].toFixed(2) + ', ' + camOrientationArray[1].toFixed(2) + ', ' + camOrientationArray[2].toFixed(2)));
+					camOriSpan.appendChild(document.createElement('br'));
+					var angleDeg = (camOrientationArray[3] * 180 / Math.PI).toFixed(1);
+					camOriSpan.appendChild(document.createTextNode('Angle: ' + angleDeg + '°'));
+				}
+
+				if (!window.soundNodesArray || !window.soundNodesArray.length) {
+					return;
+				}
+
+				var audioLevelsDiv = document.getElementById('sourceLevelBars');
+				if (!audioLevelsDiv) return;
+				audioLevelsDiv.innerHTML = '';
+
+				var strong = document.createElement('strong');
+				strong.textContent = 'Audio Levels & Distance:';
+				audioLevelsDiv.appendChild(strong);
+				var noteSpan = document.createElement('span');
+				noteSpan.style.cssText = 'font-size: 9px; color: #64748b; display: block; margin-top: 2px;';
+				noteSpan.textContent = 'Distance = camera to source (smaller = louder).';
+				audioLevelsDiv.appendChild(noteSpan);
+				audioLevelsDiv.appendChild(document.createElement('br'));
+
+				var levels = [];
+				var maxLevel = 0;
+				var maxIndex = -1;
+
+				for (var i = 0; i < window.soundNodesArray.length && i < 4; i++) {
+					var audioNode = window.soundNodesArray[i];
+					var level = 0;
+					if (audioNode.analyser && audioNode.analyserDataArray) {
+						level = getAudioLevel(audioNode.analyser, audioNode.analyserDataArray);
+					}
+
+					var sourcePos;
+					if (audioNode.TransformNode) {
+						var transAttr = audioNode.TransformNode.getAttribute('translation');
+						sourcePos = transAttr ? transAttr.split(' ').map(parseFloat) : audioSources[i].pos;
+					} else {
+						sourcePos = audioSources[i].pos;
+					}
+					var distance = calculateDistance(camPosArray, sourcePos);
+
+					levels.push({ index: i, level: level, distance: distance });
+					if (level > maxLevel) { maxLevel = level; maxIndex = i; }
+
+					var levelPercent = Math.min(100, level * 100);
+					var sourceColor = audioSources[i].color;
+					var sourceDiv = document.createElement('div');
+					sourceDiv.className = 'stats-source-row';
+
+					var nameDiv = document.createElement('div');
+					nameDiv.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;';
+					var nameLeft = document.createElement('span');
+					nameLeft.style.cssText = 'display:flex;align-items:center;gap:6px;min-width:0;';
+					var swatch = document.createElement('span');
+					swatch.style.cssText = 'display:inline-block;width:10px;height:10px;border-radius:2px;background:' + sourceColor + ';border:1px solid rgba(15,23,42,0.12);flex-shrink:0;';
+					var nameSpan = document.createElement('span');
+					nameSpan.style.cssText = 'color:' + sourceColor + ';font-weight:600;font-size:11px;';
+					nameSpan.textContent = audioSources[i].name;
+					nameLeft.appendChild(swatch);
+					nameLeft.appendChild(nameSpan);
+					var percentSpan = document.createElement('span');
+					percentSpan.style.cssText = 'color:#64748b;flex-shrink:0;';
+					percentSpan.textContent = levelPercent.toFixed(1) + '%';
+					nameDiv.appendChild(nameLeft);
+					nameDiv.appendChild(percentSpan);
+					sourceDiv.appendChild(nameDiv);
+
+					var barContainer = document.createElement('div');
+					barContainer.style.cssText = 'background:#e2e8f0;height:8px;border-radius:4px;overflow:hidden;';
+					var bar = document.createElement('div');
+					bar.style.cssText = 'background:' + sourceColor + ';height:100%;width:' + levelPercent + '%;transition:width 0.1s;';
+					barContainer.appendChild(bar);
+					sourceDiv.appendChild(barContainer);
+
+					var distSpan = document.createElement('span');
+					distSpan.className = 'stats-source-distance';
+					distSpan.style.cssText = 'font-size:10px;color:#64748b;display:block;margin-top:4px;';
+					distSpan.textContent = 'Distance: ' + distance.toFixed(0) + ' units';
+					sourceDiv.appendChild(distSpan);
+					audioLevelsDiv.appendChild(sourceDiv);
+				}
+
+				var closestSource = levels.length > 0 ? levels.reduce(function(prev, curr) {
+					return (curr.distance < prev.distance) ? curr : prev;
+				}) : null;
+				if (closestSource) {
+					var allSourceRows = audioLevelsDiv.querySelectorAll('.stats-source-row');
+					if (allSourceRows[closestSource.index]) {
+						var closestDistSpan = allSourceRows[closestSource.index].querySelector('.stats-source-distance');
+						if (closestDistSpan) {
+							var closestColor = audioSources[closestSource.index].color;
+							var closestIndicator = document.createElement('span');
+							closestIndicator.style.cssText = 'font-size:9px;color:' + closestColor + ';margin-left:5px;font-weight:bold;';
+							closestIndicator.textContent = 'nearest';
+							closestDistSpan.appendChild(document.createTextNode(' '));
+							closestDistSpan.appendChild(closestIndicator);
+						}
+					}
+				}
+
+				var activeSourceTextEl = document.getElementById('activeSourceText');
+				var activeSourcePanel = document.getElementById('activeSource');
+				if (activeSourceTextEl) {
+					activeSourceTextEl.innerHTML = '';
+					if (maxIndex >= 0 && maxLevel > 0.05) {
+						var activeColor = audioSources[maxIndex].color;
+						if (activeSourcePanel) activeSourcePanel.style.borderLeftColor = activeColor;
+						var nameSpanA = document.createElement('span');
+						nameSpanA.style.cssText = 'color:' + activeColor + ';font-weight:bold;';
+						nameSpanA.textContent = audioSources[maxIndex].name;
+						activeSourceTextEl.appendChild(nameSpanA);
+						activeSourceTextEl.appendChild(document.createElement('br'));
+						var volSpan = document.createElement('span');
+						volSpan.style.cssText = 'font-size:11px;color:#64748b;';
+						volSpan.textContent = 'Level: ' + (maxLevel * 100).toFixed(1) + '%';
+						activeSourceTextEl.appendChild(volSpan);
+					} else {
+						if (activeSourcePanel) activeSourcePanel.style.borderLeftColor = '#94a3b8';
+						activeSourceTextEl.appendChild(document.createTextNode('No audible source'));
+					}
+				}
+
+				var statusDiv = document.getElementById('distanceWarning');
+				var statusTextEl = document.getElementById('warningText');
+				var statusIconEl = document.getElementById('statusIcon');
+				if (statusDiv && statusTextEl && statusIconEl && levels.length) {
+					var minDistance = Infinity;
+					var maxLevelFound = 0;
+					for (var j = 0; j < levels.length; j++) {
+						if (levels[j].distance < minDistance) minDistance = levels[j].distance;
+						if (levels[j].level > maxLevelFound) maxLevelFound = levels[j].level;
+					}
+					var isReceivingSound = maxLevelFound > 0.10 && minDistance < 1000;
+					var isFarAway = minDistance > 2000 || (minDistance > 1200 && maxLevelFound < 0.05);
+					var nearestColor = (closestSource && audioSources[closestSource.index]) ? audioSources[closestSource.index].color : '#f59f00';
+					if (isReceivingSound) {
+						statusDiv.style.background = nearestColor + '22';
+						statusDiv.style.borderLeftColor = nearestColor;
+						statusIconEl.textContent = '✅ ';
+						statusTextEl.textContent = 'Receiving audio near nearest source (' + minDistance.toFixed(0) + ' units). Level: ' + (maxLevelFound * 100).toFixed(1) + '%.';
+					} else if (isFarAway) {
+						statusDiv.style.background = 'rgba(244,67,54,0.12)';
+						statusDiv.style.borderLeftColor = '#f44336';
+						statusIconEl.textContent = '🔴 ';
+						statusTextEl.textContent = 'Camera is far from sources (' + minDistance.toFixed(0) + ' units). Level: ' + (maxLevelFound * 100).toFixed(1) + '%.';
+					} else {
+						statusDiv.style.background = nearestColor + '18';
+						statusDiv.style.borderLeftColor = nearestColor;
+						statusIconEl.textContent = '⚠️ ';
+						statusTextEl.textContent = 'Moving — ' + minDistance.toFixed(0) + ' units from nearest source. Level: ' + (maxLevelFound * 100).toFixed(1) + '%.';
+					}
+				}
+			} catch (e) { /* ignore */ }
+		}
+
+		setInterval(updateStatistics, 100);
+
+		// Initialize graph
+		try {
+		nodes = initializeNodes();
+		edges = initializeEdges();
+
+		var container = document.getElementById('mynetwork');
+		var data = {
+			nodes: nodes,
+			edges: edges
+		};
+		
+		var options = {
+			nodes: {
+				font: {
+					size: 15,
+					color: '#0f172a',
+					face: 'Segoe UI, Arial, sans-serif',
+					strokeWidth: 0
+				},
+				borderWidth: 2,
+				shadow: false,
+				shapeProperties: {
+					borderRadius: 6
+				},
+				mass: 1
+			},
+			edges: {
+				font: {
+					align: 'middle',
+					size: 13,
+					color: '#334155',
+					strokeWidth: 0,
+					face: 'Segoe UI, Arial, sans-serif'
+				},
+				smooth: {
+					type: 'dynamic',
+					forceDirection: 'horizontal',
+					roundness: 0.5
+				},
+				arrows: {
+					to: {
+						enabled: true,
+						scaleFactor: 1.1,
+						type: 'arrow'
+					}
+				},
+				width: 2,
+				color: {
+					color: '#64748b',
+					highlight: '#3b6ea5'
+				},
+				selectionWidth: 3
+			},
+			physics: {
+				enabled: true,
+				hierarchicalRepulsion: {
+					centralGravity: 0.0,
+					springLength: 200,
+					springConstant: 0.01,
+					nodeDistance: 150,
+					damping: 0.09
+				},
+				solver: 'hierarchicalRepulsion',
+				stabilization: {
+					iterations: 100
+				}
+			},
+			interaction: {
+				hover: true,
+				tooltipDelay: 200,
+				zoomView: true,
+				dragView: true
+			},
+			layout: {
+				hierarchical: {
+					enabled: true,
+					direction: "LR",
+					sortMethod: "directed",
+					levelSeparation: 150,
+					nodeSpacing: 200,
+					treeSpacing: 300
+				}
+			}
+		};
+		
+		network = new vis.Network(container, data, options);
+		window.audioGraphNetwork = network;
+
+		if (typeof ResizeObserver !== 'undefined') {
+			var graphResizeObserver = new ResizeObserver(function() {
+				if (network) {
+					network.redraw();
+					network.fit({ animation: false });
+				}
+			});
+			graphResizeObserver.observe(container);
+		}
+
+		// Add tooltips on hover
+		network.on("hoverNode", function(params) {
+			if (params.node) {
+				var nodeData = nodes.get(params.node);
+				if (nodeData && nodeData.sculptureIndex !== undefined) {
+					if (audioLevels[nodeData.sculptureIndex]) {
+						var level = audioLevels[nodeData.sculptureIndex].level || 0;
+					}
+					container.style.cursor = 'pointer';
+					// You could show a custom tooltip here
+				}
+			}
+		});
+		
+		network.on("blurNode", function(params) {
+			container.style.cursor = 'default';
+		});
+		
+		// Continuous update loop
+		setInterval(function() {
+			if (window.soundNodesArray && window.updateAudioGraph) {
+				window.updateAudioGraph(window.soundNodesArray);
+			}
+		}, 100);
+		} catch (graphErr) {
+			console.error('Audio node graph failed to initialize:', graphErr);
+		}
+
+		// Function to start camera animation - exposed globally (X_ITE version)
+		window.startCameraAnimation = function() {
+			try {
+				// X_ITE: Access scene through canvas.browser
+				var canvas = document.querySelector('x3d-canvas');
+				if (!canvas || !canvas.browser) {
+					console.error("X_ITE canvas or browser not found");
+					return;
+				}
+				
+				var browser = canvas.browser;
+				var scene = browser.currentScene;
+				if (!scene) {
+					console.error("X_ITE scene not found");
+					return;
+				}
+				
+				// X_ITE: Use canvas.querySelector, not scene.querySelector
+				var timerNode = canvas.querySelector('TimeSensor[DEF="CameraTimer"]') || 
+				                canvas.querySelector('TimeSensor[def="CameraTimer"]');
+				if (timerNode) {
+					// X_ITE: Access TimeSensor properties through browser API
+					try {
+						// Try to set startTime and stopTime via browser API
+						var currentTime = Date.now() / 1000;
+						if (timerNode.setAttribute) {
+							timerNode.setAttribute('startTime', currentTime);
+							timerNode.setAttribute('stopTime', '-1');
+						} else if (timerNode.startTime !== undefined) {
+							timerNode.startTime = currentTime;
+							timerNode.stopTime = -1;
+						} else {
+							// Try to access via browser's node system
+							var timerNodeObj = browser.getNodeByDEF ? browser.getNodeByDEF('CameraTimer') : null;
+							if (timerNodeObj) {
+								if (timerNodeObj.setStartTime) {
+									timerNodeObj.setStartTime(currentTime);
+								} else if (timerNodeObj.startTime !== undefined) {
+									timerNodeObj.startTime = currentTime;
+									timerNodeObj.stopTime = -1;
+								}
+							}
+						}
+						console.log("✅ Camera animation started");
+					} catch(e) {
+						console.error("Error setting TimeSensor properties:", e);
+					}
+				} else {
+					console.error("CameraTimer TimeSensor not found");
+				}
+			} catch(e) {
+				console.error("Error starting camera animation:", e);
+			}
+		};
+		
+		// Resume AudioContext on any user interaction
+		var resumeOnInteraction = function() {
+			if (window.context && window.context.state === 'suspended') {
+				if (window.resumeAudioContext) {
+					window.resumeAudioContext();
+				}
+			}
+		};
+		
+		// Add event listeners for user interaction (once only to avoid multiple resumes)
+		document.addEventListener('click', resumeOnInteraction, { once: true });
+		document.addEventListener('touchstart', resumeOnInteraction, { once: true });
+		document.addEventListener('keydown', resumeOnInteraction, { once: true });
+		
+		// X_ITE renders automatically - removed all force render attempts
+		
+		// Show audio start button if needed
+		setTimeout(function() {
+			if (window.context && window.context.state === 'suspended') {
+				var button = document.getElementById('audioStartButton');
+				if (button) {
+					button.style.display = 'block';
+					button.onclick = function() {
+						if (window.resumeAudioContext) {
+							window.resumeAudioContext();
+							// Start camera animation when audio starts
+							setTimeout(function() {
+								if (window.startCameraAnimation) {
+									window.startCameraAnimation();
+								}
+							}, 500);
+						}
+						button.style.display = 'none';
+					};
+				}
+			} else {
+				// Audio context already active - start camera animation
+				setTimeout(function() {
+					if (window.startCameraAnimation) {
+						window.startCameraAnimation();
+					}
+				}, 500);
+			}
+		}, 1000);
+		
+		// Also check periodically
+		setInterval(function() {
+			if (window.context && window.context.state === 'suspended') {
+				var button = document.getElementById('audioStartButton');
+				if (button && button.style.display === 'none') {
+					button.style.display = 'block';
+				}
+			} else {
+				var button = document.getElementById('audioStartButton');
+				if (button) {
+					button.style.display = 'none';
+				}
+			}
+		}, 2000);
+		
+		//]]>
+	</script>
+
+
+</body>
+
+</html>

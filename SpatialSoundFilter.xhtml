@@ -1,0 +1,1027 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 4.0//EN" "https://www.web3d.org/specifications/x3d-4.0.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="author" content="medialab.teicrete.gr" />
+	<meta property="og:title" content="Spatial Sound in X3DOM with Web Audio API" />
+	<meta property="og:image" content="http://medialab.teicrete.gr/minipages/x3domAudio/spatial.png" />
+	<meta property="og:description"
+		content="This work presents an innovative solution of the spatial sound in X3DOM framework, that based on a combinational methodology. Specifically, we suggested the enrichment of X3DOM with spatial sound features, using both the X3D sound nodes and the structure of Web Audio API." />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="Spatial Sound in X3DOM with Web Audio API" />
+	<meta name="twitter:description"
+		content="This work presents an innovative solution of the spatial sound in X3DOM framework, that based on a combinational methodology. Specifically, we suggested the enrichment of X3DOM with spatial sound features, using both the X3D sound nodes and the structure of Web Audio API." />
+	<meta name="twitter:image" content="http://medialab.teicrete.gr/minipages/x3domAudio/spatial.png" />
+
+	<title>X3DOM AUDIO</title>
+
+	<!-- Bootstrap Core CSS -->
+	<link href="css/bootstrap.min.css" rel="stylesheet" />
+
+	<!-- Custom CSS -->
+	<link href="css/modern-business.css" rel="stylesheet" />
+
+	<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+	<script type='text/javascript' src='x3dom_dev/x3dom.js'></script>
+	<link rel='stylesheet' type='text/css' href='x3dom_dev/x3dom.css' />
+
+	<script type='text/javascript' src='js/jquery-1.11.2.min.js'></script>
+	<script type='text/javascript' src='js/bootstrap.min.js'></script>
+	<script type='text/javascript' src='js/bootstrap-slider.js'></script>
+
+
+
+	<link type='text/css' href="css/slider.css" rel="stylesheet" />
+
+
+
+	<style type="text/css">
+		* {
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			cursor: default;
+		}
+
+		body {
+			font: 13px/18px Arial, sans-serif;
+		}
+
+		a {
+			color: inherit;
+			cursor: pointer;
+		}
+
+		ul {
+			padding: 0 0 0 20px;
+		}
+
+		h1 {
+			font: bold italic 30px/30px Georgia;
+			text-align: center;
+		}
+
+		h2 {
+			font: bold italic 17px/17px Georgia;
+			padding-top: 10px;
+		}
+	</style>
+
+	<script type='text/javascript' src='SpatialSound.js'></script>
+	<script type='text/javascript' src='dist/vis.js'></script>
+
+
+	<!-- library vis.js -->
+	<style type="text/css">
+		#mynetwork {
+			width: 800px;
+			height: 500px;
+			border: 1px solid #000;
+			display: inline-block;
+		}
+	</style>
+
+
+
+</head>
+
+<body>
+
+
+	<!-- Navigation -->
+	<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+		<div class="container">
+			<!-- Brand and toggle get grouped for better mobile display -->
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle" data-toggle="collapse"
+					data-target="#bs-example-navbar-collapse-1">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="index.html">Spatial Sound</a>
+			</div>
+			<!-- Collect the nav links, forms, and other content for toggling -->
+			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+				<ul class="nav navbar-nav navbar-right">
+					<li>
+						<a href="SplitChannels.xhtml">Split Channels</a>
+					</li>
+					<li class="active">
+						<a href="SpatialSoundFilter.xhtml">Filters</a>
+					</li>
+					<li>
+						<a href="SpatialAudioCameraAnimation.xhtml">Spatial Audio Camera Animation</a>
+					</li>
+					<li>
+						<a href="nodes.html">Published Work</a>
+					</li>
+				</ul>
+			</div>
+			<!-- /.navbar-collapse -->
+		</div>
+		<!-- /.container -->
+	</nav>
+
+	<!-- Page Content -->
+	<div class="container">
+
+		<!-- Page Heading/Breadcrumbs -->
+		<div class="row">
+			<div class="col-lg-12">
+				<h1 class="page-header">X3D Spatial Sound Effects and Filters - X3D Node Graph</h1>
+				<ol class="breadcrumb">
+					<li><a href="index.html">Home</a>
+					</li>
+					<li class="active">Filters</li>
+				</ol>
+			</div>
+		</div>
+		<!-- /.row -->
+
+
+		<!-- Image Header -->
+		<div class="row">
+
+			<div class="col-lg-12">
+				<div class="col-xs-6 col-sm-4">
+					<p align="center">
+						<h1><span class="label label-default">AUDIO 1 CONTROLS</span></h1>
+					</p>
+					<p>
+						Mute Audio <input id='mute_control-1' type="checkbox" onchange="FilterControl(id, checked)" />
+
+						<div class="dropdown">
+							<button class="btn btn-default dropdown-toggle" type="button" id="filter_control-1"
+								data-toggle="dropdown" aria-expanded="false">FILTERS
+								<span class="caret"></span></button>
+							<ul class="dropdown-menu" role="menu" id="filter_menu-1">
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="allpass"
+										data-toggle="tooltip"
+										title="It lets all frequencies through, but changes the phase-relationship between the various frequencies.">ALLPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="lowpass"
+										data-toggle="tooltip"
+										title="Frequencies below the cutoff pass through, frequencies above it are attenuated.">LOWPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="highpass"
+										data-toggle="tooltip"
+										title="Frequencies below the cutoff are attenuated, frequencies above it pass through.">HIGHPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="bandpass"
+										data-toggle="tooltip"
+										title="Frequencies outside the given range of frequencies are attenuated, the frequencies inside it pass through.">BANDPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="lowshelf"
+										data-toggle="tooltip"
+										title="Frequencies lower than the frequency get a boost, or an attenuation, frequencies over it are unchanged.">LOWSHELF</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="highshelf"
+										data-toggle="tooltip"
+										title="Frequencies higher than the frequency get a boost or an attenuation, frequencies lower than it are unchanged.">HIGHSHELF</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="peaking"
+										data-toggle="tooltip"
+										title="Frequencies inside the range get a boost or an attenuation, frequencies outside it are unchanged.">PEAKING</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="notch"
+										data-toggle="tooltip"
+										title="Frequencies outside the give range of frequencies pass through, frequencies inside it are attenuated.">NOTCH</a>
+								</li>
+							</ul>
+							<h2><span class="label label-primary">Selected Filter: ALLPASS</span></h2>
+						</div>
+					</p>
+					<p>
+						Frequency <input id="freq_control-1" data-slider-id='freqSlider-1' type="text"
+							data-slider-min="10" data-slider-max="10000" data-slider-step="10"
+							data-slider-value="350" />
+					</p>
+					<p>
+						Detune <input id="detune_control-1" data-slider-id='detuneSlider-1' type="text"
+							data-slider-min="0" data-slider-max="10" data-slider-step="1" data-slider-value="0" />
+					</p>
+					<p>
+						Q <input id="q_control-1" data-slider-id='qSlider-1' type="text" data-slider-min="1"
+							data-slider-max="100" data-slider-step="1" data-slider-value="1" />
+					</p>
+					<p>
+						Gain <input id="gain_control-1" data-slider-id='gainSlider-1' type="text" data-slider-min="-40"
+							data-slider-max="40" data-slider-step="1" data-slider-value="0" />
+					</p>
+				</div>
+				<div class="col-xs-6 col-sm-4">
+					<p align="center">
+						<h1><span class="label label-default">AUDIO 2 CONTROLS</span></h1>
+					</p>
+					<p>
+						Mute Audio <input id='mute_control-2' type="checkbox" onchange="FilterControl(id, checked)" />
+
+						<div class="dropdown">
+							<button class="btn btn-default dropdown-toggle" type="button" id="filter_control-2"
+								data-toggle="dropdown">FILTERS
+								<span class="caret"></span></button>
+							<ul class="dropdown-menu" role="menu" id="filter_menu-2">
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="allpass"
+										data-toggle="tooltip"
+										title="It lets all frequencies through, but changes the phase-relationship between the various frequencies.">ALLPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="lowpass"
+										data-toggle="tooltip"
+										title="Frequencies below the cutoff pass through, frequencies above it are attenuated.">LOWPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="highpass"
+										data-toggle="tooltip"
+										title="Frequencies below the cutoff are attenuated, frequencies above it pass through.">HIGHPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="bandpass"
+										data-toggle="tooltip"
+										title="Frequencies outside the given range of frequencies are attenuated, the frequencies inside it pass through.">BANDPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="lowshelf"
+										data-toggle="tooltip"
+										title="Frequencies lower than the frequency get a boost, or an attenuation, frequencies over it are unchanged.">LOWSHELF</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="highshelf"
+										data-toggle="tooltip"
+										title="Frequencies higher than the frequency get a boost or an attenuation, frequencies lower than it are unchanged.">HIGHSHELF</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="peaking"
+										data-toggle="tooltip"
+										title="Frequencies inside the range get a boost or an attenuation, frequencies outside it are unchanged.">PEAKING</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="notch"
+										data-toggle="tooltip"
+										title="Frequencies outside the give range of frequencies pass through, frequencies inside it are attenuated.">NOTCH</a>
+								</li>
+							</ul>
+							<h2><span class="label label-primary">Selected Filter: ALLPASS</span></h2>
+						</div>
+					</p>
+					<p>
+						Frequency <input id="freq_control-2" data-slider-id='freqSlider-2' type="text"
+							data-slider-min="10" data-slider-max="10000" data-slider-step="10"
+							data-slider-value="350" />
+					</p>
+					<p>
+						Detune <input id="detune_control-2" data-slider-id='detuneSlider-2' type="text"
+							data-slider-min="0" data-slider-max="10" data-slider-step="1" data-slider-value="0" />
+					</p>
+					<p>
+						Q <input id="q_control-2" data-slider-id='qSlider-1' type="text" data-slider-min="1"
+							data-slider-max="100" data-slider-step="1" data-slider-value="1" />
+					</p>
+					<p>
+						Gain <input id="gain_control-2" data-slider-id='gainSlider-2' type="text" data-slider-min="-40"
+							data-slider-max="40" data-slider-step="1" data-slider-value="0" />
+					</p>
+				</div>
+				<div class="col-xs-6 col-sm-4">
+					<p align="center">
+						<h1><span class="label label-default">AUDIO 3 CONTROLS</span></h1>
+					</p>
+					<p>
+						Mute Audio <input id='mute_control-3' type="checkbox" onchange="FilterControl(id, checked)" />
+
+						<div class="dropdown">
+							<button class="btn btn-default dropdown-toggle" type="button" id="filter_control-1"
+								data-toggle="dropdown">FILTERS
+								<span class="caret"></span></button>
+							<ul class="dropdown-menu" role="menu" id="filter_menu-3">
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="allpass"
+										data-toggle="tooltip"
+										title="It lets all frequencies through, but changes the phase-relationship between the various frequencies.">ALLPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="lowpass"
+										data-toggle="tooltip"
+										title="Frequencies below the cutoff pass through, frequencies above it are attenuated.">LOWPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="highpass"
+										data-toggle="tooltip"
+										title="Frequencies below the cutoff are attenuated, frequencies above it pass through.">HIGHPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="bandpass"
+										data-toggle="tooltip"
+										title="Frequencies outside the given range of frequencies are attenuated, the frequencies inside it pass through.">BANDPASS</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="lowshelf"
+										data-toggle="tooltip"
+										title="Frequencies lower than the frequency get a boost, or an attenuation, frequencies over it are unchanged.">LOWSHELF</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="highshelf"
+										data-toggle="tooltip"
+										title="Frequencies higher than the frequency get a boost or an attenuation, frequencies lower than it are unchanged.">HIGHSHELF</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="peaking"
+										data-toggle="tooltip"
+										title="Frequencies inside the range get a boost or an attenuation, frequencies outside it are unchanged.">PEAKING</a>
+								</li>
+								<li role="presentation"><a role="menuitem" tabindex="-1" value="notch"
+										data-toggle="tooltip"
+										title="Frequencies outside the give range of frequencies pass through, frequencies inside it are attenuated.">NOTCH</a>
+								</li>
+							</ul>
+							<h2><span class="label label-primary">Selected Filter: ALLPASS</span></h2>
+						</div>
+					</p>
+					<p>
+						Frequency <input id="freq_control-3" data-slider-id='freqSlider-3' type="text"
+							data-slider-min="10" data-slider-max="10000" data-slider-step="10"
+							data-slider-value="350" />
+					</p>
+					<p>
+						Detune <input id="detune_control-3" data-slider-id='detuneSlider-3' type="text"
+							data-slider-min="0" data-slider-max="10" data-slider-step="1" data-slider-value="0" />
+					</p>
+					<p>
+						Q <input id="q_control-3" data-slider-id='qSlider-3' type="text" data-slider-min="1"
+							data-slider-max="100" data-slider-step="1" data-slider-value="1" />
+					</p>
+					<p>
+						Gain <input id="gain_control-3" data-slider-id='gainSlider-3' type="text" data-slider-min="-40"
+							data-slider-max="40" data-slider-step="1" data-slider-value="0" />
+					</p>
+				</div>
+			</div>
+
+
+
+			<script>
+				$('#filter_menu-1 li a').on('click', function () {
+					console.log($(this).context.parentNode.parentNode.parentNode.childNodes[5].childNodes[0].textContent =
+						"Selected Filter: " + $(this).text());
+					FilterControl($(this).context.parentNode.parentNode.id, $(this).text());
+				});
+				$('#filter_menu-2 li a').on('click', function () {
+					console.log($(this).context.parentNode.parentNode.parentNode.childNodes[5].childNodes[0].textContent =
+						"Selected Filter: " + $(this).text());
+					FilterControl($(this).context.parentNode.parentNode.id, $(this).text());
+				});
+				$('#filter_menu-3 li a').on('click', function () {
+					console.log($(this).context.parentNode.parentNode.parentNode.childNodes[5].childNodes[0].textContent =
+						"Selected Filter: " + $(this).text());
+					FilterControl($(this).context.parentNode.parentNode.id, $(this).text());
+				});
+
+
+				$('#freq_control-1').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#freq_control-1').slider().on('slideStop', function (ev) {
+					FilterControl($('#freq_control-1').data('slider').id, $('#freq_control-1').data('slider').getValue());
+				});
+				$('#freq_control-2').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#freq_control-2').slider().on('slideStop', function (ev) {
+					FilterControl($('#freq_control-2').data('slider').id, $('#freq_control-2').data('slider').getValue());
+				});
+				$('#freq_control-3').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#freq_control-3').slider().on('slideStop', function (ev) {
+					FilterControl($('#freq_control-3').data('slider').id, $('#freq_control-3').data('slider').getValue());
+				});
+
+
+				$('#detune_control-1').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#detune_control-1').slider().on('slideStop', function (ev) {
+					FilterControl($('#detune_control-1').data('slider').id, $('#detune_control-1').data('slider')
+						.getValue());
+				});
+				$('#detune_control-2').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#detune_control-2').slider().on('slideStop', function (ev) {
+					FilterControl($('#detune_control-2').data('slider').id, $('#detune_control-2').data('slider')
+						.getValue());
+				});
+				$('#detune_control-3').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#detune_control-3').slider().on('slideStop', function (ev) {
+					FilterControl($('#detune_control-3').data('slider').id, $('#detune_control-3').data('slider')
+						.getValue());
+				});
+
+
+				$('#q_control-1').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#q_control-1').slider().on('slideStop', function (ev) {
+					FilterControl($('#q_control-1').data('slider').id, $('#q_control-1').data('slider').getValue());
+				});
+				$('#q_control-2').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#q_control-2').slider().on('slideStop', function (ev) {
+					FilterControl($('#q_control-2').data('slider').id, $('#q_control-2').data('slider').getValue());
+				});
+				$('#q_control-3').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#q_control-3').slider().on('slideStop', function (ev) {
+					FilterControl($('#q_control-3').data('slider').id, $('#q_control-3').data('slider').getValue());
+				});
+
+
+
+				$('#gain_control-1').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#gain_control-1').slider().on('slideStop', function (ev) {
+					FilterControl($('#gain_control-1').data('slider').id, $('#gain_control-1').data('slider').getValue());
+				});
+				$('#gain_control-2').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#gain_control-2').slider().on('slideStop', function (ev) {
+					FilterControl($('#gain_control-2').data('slider').id, $('#gain_control-2').data('slider').getValue());
+				});
+				$('#gain_control-3').slider({
+					formatter: function (value) {
+						return 'Current value: ' + value;
+					},
+					change: function (event, ui) {
+						console.log("has changed");
+					}
+				});
+				$('#gain_control-3').slider().on('slideStop', function (ev) {
+					FilterControl($('#gain_control-3').data('slider').id, $('#gain_control-3').data('slider').getValue());
+				});
+			</script>
+
+			<div>
+
+				<X3D profile='Full' version='4.0' xmlns:xsd='http://www.w3.org/2001/XMLSchema-instance'
+					xsd:noNamespaceSchemaLocation='https://www.web3d.org/specifications/x3d-4.0.xsd'
+					style="float:left; border: 1px solid #000;">
+					<Scene>
+						<NavigationInfo id='NAV' headlight='true' />
+						<Background skyColor='0.200 0.200 0.200' />
+						<Viewpoint
+							description='Viewpoint is like camera, prepositioned in locations (and directions) of interest. In this example the camera is the "ears of the user". 
+						So, if the trackCurrentView field from ListenerPointSource is true then position and orientation matches the users current view'
+							position='0.0 500.0 600.0' orientation='1 0 0 -0.5' fieldOfView='0.7854'
+							retainUserOffsets='true' />
+
+
+						<Transform DEF="Audio1" translation="-200 50 0">
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.1 0.1 0.1' specularColor='0.01 0.01 0.01'
+										emissiveColor='0.0 0.0 0.0' />
+								</Appearance>
+								<Sphere radius='30' />
+							</Shape>
+						</Transform>
+
+						<Transform DEF="Audio2" translation="0 50 0">
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.1 0.1 0.1' specularColor='0.01 0.01 0.01'
+										emissiveColor='0.0 0.0 0.0' />
+								</Appearance>
+								<Sphere radius='30' />
+							</Shape>
+						</Transform>
+
+						<Transform DEF="Audio3" translation="200 50 0">
+							<Shape>
+								<Appearance>
+									<Material diffuseColor='0.1 0.1 0.1' specularColor='0.01 0.01 0.01'
+										emissiveColor='0.0 0.0 0.0' />
+								</Appearance>
+								<Sphere radius='30' />
+							</Shape>
+						</Transform>
+
+						<Transform translation='0 -10 0' rotation='1 0 0 -0.5' scale="10 10 10">
+							<Shape>
+								<Appearance>
+									<Material ambientIntensity="0.0933" diffuseColor="1 1 1" shininess="0.51"
+										specularColor="0.46 0.46 0.46" emissiveColor='0.0 0.0 0.0' />
+								</Appearance>
+								<Text string='"Left Channel Volume"' solid="false">
+									<FontStyle family='"SERIF"' style="BOLD" size="1" horizontal="true"
+										justify='"BEGIN"' leftToRight="true" spacing="1" topToBottom="true" />
+								</Text>
+							</Shape>
+						</Transform>
+
+
+
+						<Transform id='AnimDataPoint' DEF="AnimData" translation="0 50 0" />
+						<Transform id='AnimDataBoxH' DEF="AnimDataBoxH" translation="0 100 0" />
+						<Transform id='AnimDataBoxM' DEF="AnimDataBoxM" translation="15 100 0" />
+						<Transform id='AnimDataBoxL' DEF="AnimDataBoxL" translation="30 100 0" />
+						<Transform id='AnimDataBoxMMirror' DEF="AnimDataBoxMM" translation="-15 100 0" />
+						<Transform id='AnimDataBoxLMirror' DEF="AnimDataBoxLM" translation="-30 100 0" />
+
+						<Transform>
+							<Shape>
+								<Appearance DEF='floor'>
+									<Material diffuseColor='0.1 0.1 0.1' shininess='0.8' specularColor='0.5 0.6 0.7' />
+								</Appearance>
+								<Cylinder radius='500' />
+							</Shape>
+						</Transform>
+
+
+
+
+						<AudioDestination channelInterpretation='speakers'>
+
+							<ListenerPointSource id='ListenerPointSource' trackCurrentView='true'></ListenerPointSource>
+
+
+							<DynamicsCompressor id='DynamicsCompressor'>
+								<Gain id='Gain4' gain='1.0'>
+									<SpatialSound location='0 0 0' direction='1 0 0' coneInnerAngle='6.28319'
+										coneOuterAngle='6.28319' coneOuterGain='0' distanceModel='inverse'
+										maxDistance='10000' enableHRTF='true' referenceDistance='1' rolloffFactor='1'>
+										<Gain id='Gain1' gain='1.0'>
+											<Analyser id='Analyser1'>
+												<BiquadFilter id='BiquadFilter1' frequency='600' detune='50.0'
+													qualityFactor='30.0' gain='1.0' type='allpass'>
+													<Sound location='0 1.6 0'>
+														<AudioClip id='AudioClip1'
+															description='AudioClip is the Sound Source' loop='true'
+															url='"sound/techno_beat.mp3" "sound/techno_beat.wav" "https://x3dgraphics.com/examples/X3dForAdvancedModeling/AudioSpatialSound/sound/techno_beat.mp3" "https://medialab.hmu.gr/minipages/x3domAudio/sound/techno_beat.mp3"'
+															pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+													</Sound>
+												</BiquadFilter>
+											</Analyser>
+										</Gain>
+									</SpatialSound>
+
+									<SpatialSound location='0 0 0' direction='1 0 0' coneInnerAngle='6.28319'
+										coneOuterAngle='6.28319' coneOuterGain='0' distanceModel='inverse'
+										maxDistance='10000' enableHRTF='true' referenceDistance='1' rolloffFactor='1'>
+										<Gain id='Gain2' gain='1.0'>
+											<Analyser id='Analyser2'>
+												<BiquadFilter id='BiquadFilter2' frequency='600' detune='15.0'
+													qualityFactor='15.0' gain='1.0' type='allpass'>
+													<Sound location='0 1.6 0'>
+														<AudioClip id='AudioClip2'
+															description='AudioClip is the Sound Source' loop='true'
+															url='"sound/beat.mp3" "sound/beat.wav" "https://x3dgraphics.com/examples/X3dForAdvancedModeling/AudioSpatialSound/sound/beat.mp3" "https://medialab.hmu.gr/minipages/x3domAudio/sound/beat.mp3"'
+															pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+													</Sound>
+												</BiquadFilter>
+											</Analyser>
+										</Gain>
+									</SpatialSound>
+
+									<SpatialSound location='0 0 0' direction='1 0 0' coneInnerAngle='6.28319'
+										coneOuterAngle='6.28319' coneOuterGain='0' distanceModel='inverse'
+										maxDistance='10000' enableHRTF='true' referenceDistance='1' rolloffFactor='1'>
+										<Gain id='Gain3' gain='1.0'>
+											<Analyser id='Analyser3'>
+												<BiquadFilter id='BiquadFilter3' frequency='1000' detune='0.0'
+													qualityFactor='0' gain='1.0' type='allpass'>
+													<Sound location='0 1.6 0'>
+														<AudioClip id='AudioClip3'
+															description='AudioClip is the Sound Source' loop='true'
+															url='"sound/wobble_loop.mp3" "sound/wobble_loop.wav" "https://x3dgraphics.com/examples/X3dForAdvancedModeling/AudioSpatialSound/sound/sound/wobble_loop.mp3" "https://medialab.hmu.gr/minipages/x3domAudio/sound/wobble_loop.mp3"'
+															pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
+													</Sound>
+												</BiquadFilter>
+											</Analyser>
+										</Gain>
+									</SpatialSound>
+								</Gain>
+							</DynamicsCompressor>
+						</AudioDestination>
+
+
+					</Scene>
+				</X3D>
+				<div id="mynetwork"></div>
+
+			</div>
+		</div>
+
+		<!-- /.row -->
+
+
+		<!-- Service Tabs -->
+		<div class="row">
+			<div class="col-lg-12">
+				<h2 class="page-header">Information</h2>
+			</div>
+			<div class="col-lg-12">
+
+				<ul id="myTab" class="nav nav-tabs nav-justified">
+					<li class="active"><a href="#service-one" data-toggle="tab">Description</a>
+					</li>
+					<li class=""><a href="#service-two" data-toggle="tab">Registered nodes in X3D</a>
+					</li>
+				</ul>
+
+				<div id="myTabContent" class="tab-content">
+					<div class="tab-pane fade active in" id="service-one">
+						<h4>Description</h4>
+						<p style="text-align:justify;">
+							This X3D scene involves three sound sources. Each of them is visualized by a 3D object (in
+							our case is a sphere)
+							that depicts the sound effects. Specifically, we have added filters through of them we are
+							able to manage the different
+							sound effects in an impressive way. Filters can be composed of a number of attributes,
+							frequency, detune, gain and the
+							quality factor which also known as Q. Furthermore, the filters are classified in some
+							specific types, depending on the
+							sound effects that produce. In detail, there is the Low-pass filter which can create more
+							muffled sound. Another one is
+							the High-pass filter, which is used to generate tinny sound. Equally important is the
+							Band-pass filter, which cuts off low
+							and high frequencies and passes through only these within a certain range. On the contrary,
+							the Notch filter has exactly
+							the opposite operation of the Band-pass filter. Then is the Low-shelf filter, its role is to
+							change the amount of bass in
+							a sound, as a result the frequencies that are lower than the current frequency get a boost,
+							while them that are over it
+							remain unchanged. Next, the High-shelf filter is responsible for the quantity of treble in a
+							sound. Moreover, Peaking filter
+							is used in order to handle the amount of midrange in a sound. Lastly, there is the All-pass
+							filter, whose role is to
+							introduce phaser effects.
+
+						</p>
+					</div>
+					<div class="tab-pane fade" id="service-two">
+						<h4>Use of new registered nodes in X3D</h4>
+
+						<p style="text-align:center;">
+							<br />
+							<br />
+							<div class="col-md-2"></div>
+							<div class="col-md-6"><img src="images/graphs/exampleFilters.png" width="700px" /></div>
+							<div class="col-md-2"></div>
+						</p>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+
+
+		<hr />
+
+		<!-- Footer -->
+		<footer>
+			<div class="row">
+				<div class="col-lg-12" style="text-align:center;">
+					<a href="http://www.medialab.teicrete.gr/index.php/minipages" target="_blank">Multimedia Content
+						Laboratory</a> <img src="images/logos/logo.png" width="40px" height="30px" />
+				</div>
+			</div>
+		</footer>
+
+	</div>
+	<!-- /.container -->
+
+
+	<div class="container">
+		<div id="X3D"></div>
+
+	</div>
+
+
+
+
+	<script type='text/javascript' src='soundController_SpatialSoundFilter.js'></script>
+	<script type="text/javascript">
+		// create an array with nodes
+		var nodes = new vis.DataSet([{
+				id: 1,
+				label: 'AudioClip1',
+				shape: 'box',
+				color: 'rgba(48,150,136,1)'
+			},
+			{
+				id: 2,
+				label: 'BiquadFilter1',
+				shape: 'box',
+				color: 'rgba(63,151,246,1)'
+			},
+			{
+				id: 3,
+				label: 'Analyser1',
+				shape: 'box',
+				color: 'rgba(0,188,212,1)'
+			},
+			{
+				id: 4,
+				label: 'Gain1',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 5,
+				label: 'SpatialSound1',
+				shape: 'box',
+				color: 'rgba(63,151,246,1)'
+			},
+
+			{
+				id: 6,
+				label: 'AudioClip2',
+				shape: 'box',
+				color: 'rgba(48,150,136,1)'
+			},
+			{
+				id: 7,
+				label: 'BiquadFilter2',
+				shape: 'box',
+				color: 'rgba(63,151,246,1)'
+			},
+			{
+				id: 8,
+				label: 'Analyser2',
+				shape: 'box',
+				color: 'rgba(0,188,212,1)'
+			},
+			{
+				id: 9,
+				label: 'Gain2',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 10,
+				label: 'SpatialSound2',
+				shape: 'box',
+				color: 'rgba(63,151,246,1)'
+			},
+
+			{
+				id: 11,
+				label: 'AudioClip3',
+				shape: 'box',
+				color: 'rgba(48,150,136,1)'
+			},
+			{
+				id: 12,
+				label: 'BiquadFilter3',
+				shape: 'box',
+				color: 'rgba(63,151,246,1)'
+			},
+			{
+				id: 13,
+				label: 'Analyser3',
+				shape: 'box',
+				color: 'rgba(0,188,212,1)'
+			},
+			{
+				id: 14,
+				label: 'Gain3',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 15,
+				label: 'SpatialSound3',
+				shape: 'box',
+				color: 'rgba(63,151,246,1)'
+			},
+
+			{
+				id: 16,
+				label: 'Gain4',
+				shape: 'box',
+				color: 'rgba(68,82,184,1)'
+			},
+			{
+				id: 17,
+				label: 'DynamicsCompressor',
+				shape: 'box',
+				color: 'rgba(63,151,246,1)'
+			},
+			{
+				id: 18,
+				label: 'AudioDestination',
+				shape: 'box',
+				color: 'rgba(57,71,79,1)'
+			}
+		]);
+
+		// create an array with edges
+		var edges = new vis.DataSet([{
+				from: 1,
+				to: 2
+			},
+			{
+				from: 2,
+				to: 3
+			},
+			{
+				from: 3,
+				to: 4
+			},
+			{
+				from: 4,
+				to: 5
+			},
+			{
+				from: 5,
+				to: 16
+			},
+
+
+			{
+				from: 6,
+				to: 7
+			},
+			{
+				from: 7,
+				to: 8
+			},
+			{
+				from: 8,
+				to: 9
+			},
+			{
+				from: 9,
+				to: 10
+			},
+			{
+				from: 10,
+				to: 16
+			},
+
+			{
+				from: 11,
+				to: 12
+			},
+			{
+				from: 12,
+				to: 13
+			},
+			{
+				from: 13,
+				to: 14
+			},
+			{
+				from: 14,
+				to: 15
+			},
+			{
+				from: 15,
+				to: 16
+			},
+
+			{
+				from: 16,
+				to: 17
+			},
+			{
+				from: 17,
+				to: 18
+			}
+
+		]);
+
+
+		// create a network
+		var container = document.getElementById('mynetwork');
+		var data = {
+			nodes: nodes,
+			edges: edges
+		};
+		var options = {
+			nodes: {
+				font: {
+					size: 18,
+					color: "white",
+					bold: {
+						color: '#111111',
+						size: 14, // px
+						face: 'arial',
+						vadjust: 0,
+						mod: 'bold'
+					},
+					ital: {
+						color: '#111111',
+						size: 14, // px
+						face: 'arial',
+						vadjust: 0,
+						mod: 'italic',
+					}
+				},
+				borderWidth: 0,
+				labelHighlightBold: true,
+			},
+			edges: {
+				font: {
+					align: "top"
+				},
+				smooth: {
+					type: "dynamic",
+					forceDirection: "horizontal",
+					roundness: 0.0
+				},
+				arrows: {
+					to: {
+						enabled: true,
+						scaleFactor: 1,
+						type: "arrow"
+					}
+
+				},
+
+				color: {
+					color: '#000000',
+					highlight: '#000000',
+					hover: '#000000',
+					inherit: 'from',
+					opacity: 1.0
+				}
+			},
+
+			layout: {
+				hierarchical: {
+					direction: "LR",
+					sortMethod: 'directed'
+				}
+			}
+
+
+
+		};
+		var network = new vis.Network(container, data, options);
+	</script>
+
+
+</body>
+
+</html>
