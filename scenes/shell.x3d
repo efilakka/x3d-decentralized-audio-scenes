@@ -144,7 +144,10 @@
       </Shape>
     </Transform>
 
-    <!-- Streamed sculpture chunks mount here (step 2+) -->
-    <Group DEF="StreamedSources" />
+    <!-- Verified sculpture chunks — activated after blockchain + SHA-256 verification -->
+    <Inline DEF="Chunk_Sculpture1" load="false" url="" />
+    <Inline DEF="Chunk_Sculpture2" load="false" url="" />
+    <Inline DEF="Chunk_Sculpture3" load="false" url="" />
+    <Inline DEF="Chunk_Sculpture4" load="false" url="" />
   </Scene>
 </X3D>

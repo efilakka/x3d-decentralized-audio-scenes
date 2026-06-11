@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Verify — Content-Addressed X3D Spatial Audio Scene</title>
+	<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+	<style>
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+
+		body {
+			min-height: 100vh;
+			background: #080d1a;
+			color: #e2e8f0;
+			font-family: 'Segoe UI', system-ui, sans-serif;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			padding: 24px;
+		}
+
+		/* ── header ── */
+		.header {
+			text-align: center;
+			margin-bottom: 48px;
+		}
+		.header h1 {
+			font-size: clamp(1.2rem, 3vw, 1.8rem);
+			font-weight: 700;
+			letter-spacing: 0.02em;
+			color: #f1f5f9;
+			line-height: 1.3;
+		}
+		.header p {
+			margin-top: 10px;
+			font-size: 0.85rem;
+			color: #64748b;
+		}
+		.authors {
+			margin-top: 6px;
+			font-size: 0.78rem;
+			color: #475569;
+		}
+
+		/* ── trust chain ── */
+		.chain {
+			display: flex;
+			align-items: center;
+			gap: 0;
+			margin-bottom: 48px;
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+		.chain-node {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 6px;
+			padding: 14px 18px;
+			border-radius: 10px;
+			border: 1px solid #1e293b;
+			background: #0f172a;
+			min-width: 100px;
+			transition: border-color 0.4s, background 0.4s, box-shadow 0.4s;
+		}
+		.chain-node .icon {
+			font-size: 1.6rem;
+			filter: grayscale(1) opacity(0.35);
+			transition: filter 0.4s;
+		}
+		.chain-node .label {
+			font-size: 0.7rem;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.08em;
+			color: #475569;
+			transition: color 0.4s;
+		}
+		.chain-node .sublabel {
+			font-size: 0.65rem;
+			color: #334155;
+			text-align: center;
+			transition: color 0.4s;
+		}
+		.chain-arrow {
+			font-size: 1.2rem;
+			color: #1e293b;
+			margin: 0 4px;
+			transition: color 0.4s;
+			padding-bottom: 10px;
+		}
+
+		/* states */
+		.chain-node.active {
+			border-color: #f59e0b;
+			background: #1a1400;
+			box-shadow: 0 0 16px rgba(245,158,11,0.2);
+		}
+		.chain-node.active .icon { filter: grayscale(0) opacity(1); }
+		.chain-node.active .label { color: #fbbf24; }
+		.chain-node.active .sublabel { color: #92400e; }
+		.chain-arrow.active { color: #f59e0b; }
+
+		.chain-node.done {
+			border-color: #22c55e;
+			background: #052e16;
+			box-shadow: 0 0 16px rgba(34,197,94,0.15);
+		}
+		.chain-node.done .icon { filter: grayscale(0) opacity(1); }
+		.chain-node.done .label { color: #4ade80; }
+		.chain-node.done .sublabel { color: #166534; }
+		.chain-arrow.done { color: #22c55e; }
+
+		.chain-node.error {
+			border-color: #ef4444;
+			background: #1f0606;
+			box-shadow: 0 0 16px rgba(239,68,68,0.2);
+		}
+		.chain-node.error .label { color: #f87171; }
+
+		/* ── steps detail ── */
+		.steps-panel {
+			width: 100%;
+			max-width: 560px;
+			margin-bottom: 40px;
+		}
+		.step {
+			display: flex;
+			align-items: flex-start;
+			gap: 14px;
+			padding: 12px 16px;
+			margin-bottom: 8px;
+			border-radius: 8px;
+			background: #0f172a;
+			border: 1px solid #1e293b;
+			font-size: 0.82rem;
+			color: #64748b;
+			transition: background 0.3s, border-color 0.3s, color 0.3s;
+		}
+		.step .step-dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: #1e293b;
+			margin-top: 3px;
+			flex-shrink: 0;
+			transition: background 0.3s, box-shadow 0.3s;
+		}
+		.step .step-text { flex: 1; }
+		.step .step-badge {
+			font-size: 0.68rem;
+			font-family: monospace;
+			color: #334155;
+			white-space: nowrap;
+			transition: color 0.3s;
+		}
+
+		.step.active {
+			background: #1a1400;
+			border-color: #f59e0b44;
+			color: #fcd34d;
+		}
+		.step.active .step-dot {
+			background: #f59e0b;
+			box-shadow: 0 0 8px #f59e0b88;
+			animation: pulse 1s ease-in-out infinite;
+		}
+		.step.active .step-badge { color: #92400e; }
+
+		.step.done {
+			background: #052e16;
+			border-color: #22c55e33;
+			color: #86efac;
+		}
+		.step.done .step-dot {
+			background: #22c55e;
+			box-shadow: 0 0 6px #22c55e88;
+		}
+		.step.done .step-badge { color: #4ade80; }
+
+		.step.error {
+			background: #1f0606;
+			border-color: #ef444433;
+			color: #fca5a5;
+		}
+		.step.error .step-dot { background: #ef4444; }
+
+		@keyframes pulse {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.4; }
+		}
+
+		/* ── CID display ── */
+		.cid-row {
+			width: 100%;
+			max-width: 560px;
+			margin-bottom: 32px;
+			padding: 12px 16px;
+			background: #0a0f1e;
+			border: 1px solid #1e293b;
+			border-radius: 8px;
+			font-size: 0.75rem;
+			color: #475569;
+			display: flex;
+			justify-content: space-between;
+			gap: 12px;
+		}
+		.cid-row span:first-child { white-space: nowrap; }
+		.cid-row code {
+			font-family: monospace;
+			color: #64748b;
+			word-break: break-all;
+			transition: color 0.4s;
+		}
+		.cid-row code.verified { color: #4ade80; }
+
+		/* ── enter button ── */
+		.enter-btn {
+			display: none;
+			padding: 16px 48px;
+			font-size: 1rem;
+			font-weight: 700;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			color: #fff;
+			background: linear-gradient(135deg, #22c55e, #16a34a);
+			border: none;
+			border-radius: 12px;
+			cursor: pointer;
+			box-shadow: 0 0 32px rgba(34,197,94,0.35);
+			transition: transform 0.2s, box-shadow 0.2s;
+			animation: fadeInUp 0.5s ease both;
+		}
+		.enter-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 0 48px rgba(34,197,94,0.55);
+		}
+		@keyframes fadeInUp {
+			from { opacity: 0; transform: translateY(16px); }
+			to   { opacity: 1; transform: translateY(0); }
+		}
+
+		/* ── error panel ── */
+		.error-panel {
+			display: none;
+			width: 100%;
+			max-width: 560px;
+			margin-bottom: 24px;
+			padding: 16px;
+			background: #1f0606;
+			border: 1px solid #ef444444;
+			border-radius: 8px;
+			font-size: 0.82rem;
+			color: #fca5a5;
+		}
+		.error-panel .retry-btn {
+			margin-top: 12px;
+			padding: 8px 20px;
+			background: #7f1d1d;
+			border: 1px solid #ef4444;
+			border-radius: 6px;
+			color: #fca5a5;
+			cursor: pointer;
+			font-size: 0.82rem;
+		}
+		.error-panel .retry-btn:hover { background: #991b1b; }
+
+		/* ── footer ── */
+		.footer {
+			position: fixed;
+			bottom: 16px;
+			font-size: 0.7rem;
+			color: #1e293b;
+			text-align: center;
+		}
+	</style>
+</head>
+<body>
+
+<div class="header">
+	<h1>Content-Addressed Progressive Delivery<br>of X3D Spatial Audio Scenes</h1>
+	<p>with On-Chain Integrity Anchoring</p>
+	<p class="authors">Lakka · Tzermia · Brutzman · Malamos &mdash; HMU / NPS</p>
+</div>
+
+<!-- Trust chain diagram -->
+<div class="chain">
+	<div class="chain-node" id="cn-blockchain">
+		<span class="icon">⛓️</span>
+		<span class="label">Blockchain</span>
+		<span class="sublabel">Sepolia<br>0xeb62…f76</span>
+	</div>
+	<div class="chain-arrow" id="arr-1">→</div>
+	<div class="chain-node" id="cn-ipfs">
+		<span class="icon">🌐</span>
+		<span class="label">IPFS</span>
+		<span class="sublabel">Pinata<br>CIDv1</span>
+	</div>
+	<div class="chain-arrow" id="arr-2">→</div>
+	<div class="chain-node" id="cn-manifest">
+		<span class="icon">📋</span>
+		<span class="label">Manifest</span>
+		<span class="sublabel">SHA-256<br>catalogue</span>
+	</div>
+	<div class="chain-arrow" id="arr-3">→</div>
+	<div class="chain-node" id="cn-shell">
+		<span class="icon">🔩</span>
+		<span class="label">Shell</span>
+		<span class="sublabel">Audio graph<br>+ lighting</span>
+	</div>
+	<div class="chain-arrow" id="arr-4">→</div>
+	<div class="chain-node" id="cn-chunks">
+		<span class="icon">🧩</span>
+		<span class="label">Chunks</span>
+		<span class="sublabel">4 × LOD0<br>geometry</span>
+	</div>
+</div>
+
+<!-- Step details -->
+<div class="steps-panel">
+	<div class="step" id="s1">
+		<div class="step-dot"></div>
+		<div class="step-text">Query Sepolia smart contract for authoritative CID</div>
+		<div class="step-badge" id="s1-badge"></div>
+	</div>
+	<div class="step" id="s2">
+		<div class="step-dot"></div>
+		<div class="step-text">Fetch manifest from IPFS gateway</div>
+		<div class="step-badge" id="s2-badge"></div>
+	</div>
+	<div class="step" id="s3">
+		<div class="step-dot"></div>
+		<div class="step-text">Verify local manifest CID matches on-chain anchor</div>
+		<div class="step-badge" id="s3-badge"></div>
+	</div>
+	<div class="step" id="s4">
+		<div class="step-dot"></div>
+		<div class="step-text">Fetch shell.x3d and verify SHA-256 hash</div>
+		<div class="step-badge" id="s4-badge"></div>
+	</div>
+</div>
+
+<!-- CID display -->
+<div class="cid-row">
+	<span>On-chain CID:</span>
+	<code id="cidDisplay">—</code>
+</div>
+
+<!-- Error panel -->
+<div class="error-panel" id="errorPanel">
+	<strong>Verification failed:</strong>
+	<div id="errorMsg" style="margin-top:6px;"></div>
+	<button class="retry-btn" onclick="runVerification()">↻ Retry</button>
+</div>
+
+<!-- Enter button (shown only after full verification) -->
+<button class="enter-btn" id="enterBtn" onclick="enterGallery()">
+	Enter Gallery →
+</button>
+
+<div class="footer">
+	Verify-Before-Bind · Sepolia Testnet · IPFS / Pinata &nbsp;·&nbsp;
+	<a href="MultiSourceSpatialAudioNavigationScene_Streamed.xhtml" style="color:#1e293b;text-decoration:none;">Skip to Scene →</a>
+</div>
+
+<script>
+//<![CDATA[
+var BLOCKCHAIN_CONFIG = {
+	network: 'sepolia',
+	rpcUrl: 'https://ethereum-sepolia.publicnode.com',
+	contractAddress: '0xeb62afe54b4805eaec777b99d66959798afb9f76',
+	ipfsGateway: 'https://gateway.pinata.cloud/ipfs/',
+	contractABI: ['function manifestCid() view returns (string)']
+};
+
+var SCENE_URL = 'MultiSourceSpatialAudioNavigationScene_Streamed.xhtml';
+
+function setState(id, state, badge) {
+	var el = document.getElementById(id);
+	if (el) el.className = 'step' + (state ? ' ' + state : '');
+	if (badge !== undefined) {
+		var b = document.getElementById(id + '-badge');
+		if (b) b.textContent = badge;
+	}
+}
+
+function setChain(nodeId, arrowId, state) {
+	var n = document.getElementById(nodeId);
+	if (n) n.className = 'chain-node' + (state ? ' ' + state : '');
+	if (arrowId) {
+		var a = document.getElementById(arrowId);
+		if (a) a.className = 'chain-arrow' + (state ? ' ' + state : '');
+	}
+}
+
+function showError(msg) {
+	var p = document.getElementById('errorPanel');
+	document.getElementById('errorMsg').textContent = msg;
+	p.style.display = 'block';
+}
+
+function hideError() {
+	document.getElementById('errorPanel').style.display = 'none';
+}
+
+async function runVerification() {
+	hideError();
+	document.getElementById('enterBtn').style.display = 'none';
+	document.getElementById('cidDisplay').textContent = '—';
+	document.getElementById('cidDisplay').className = '';
+
+	// reset all
+	['s1','s2','s3','s4'].forEach(function(id) { setState(id, ''); });
+	['cn-blockchain','cn-ipfs','cn-manifest','cn-shell','cn-chunks'].forEach(function(id) {
+		var n = document.getElementById(id);
+		if (n) n.className = 'chain-node';
+	});
+	['arr-1','arr-2','arr-3','arr-4'].forEach(function(id) {
+		var a = document.getElementById(id);
+		if (a) a.className = 'chain-arrow';
+	});
+
+	// ── Step 1: Query blockchain ──────────────────────────────────────────
+	setState('s1', 'active');
+	setChain('cn-blockchain', null, 'active');
+	var onChainCid;
+	try {
+		var t0 = performance.now();
+		var provider = new ethers.JsonRpcProvider(BLOCKCHAIN_CONFIG.rpcUrl);
+		var contract = new ethers.Contract(
+			BLOCKCHAIN_CONFIG.contractAddress,
+			BLOCKCHAIN_CONFIG.contractABI,
+			provider
+		);
+		onChainCid = await contract.manifestCid();
+		var elapsed = (performance.now() - t0).toFixed(0);
+		setState('s1', 'done', elapsed + ' ms');
+		setChain('cn-blockchain', 'arr-1', 'done');
+		document.getElementById('cidDisplay').textContent = onChainCid.substring(0, 28) + '…';
+	} catch (err) {
+		setState('s1', 'error', 'failed');
+		setChain('cn-blockchain', null, 'error');
+		showError('Blockchain query failed: ' + err.message);
+		return;
+	}
+
+	// ── Step 2: Fetch IPFS manifest ───────────────────────────────────────
+	setState('s2', 'active');
+	setChain('cn-ipfs', null, 'active');
+	try {
+		var t1 = performance.now();
+		var url = BLOCKCHAIN_CONFIG.ipfsGateway + onChainCid + '/manifest.json';
+		var resp = await fetch(url);
+		if (!resp.ok) throw new Error('HTTP ' + resp.status);
+		await resp.json();
+		var elapsed2 = (performance.now() - t1).toFixed(0);
+		setState('s2', 'done', elapsed2 + ' ms');
+		setChain('cn-ipfs', 'arr-2', 'done');
+	} catch (err) {
+		setState('s2', 'error', 'failed');
+		setChain('cn-ipfs', null, 'error');
+		showError('IPFS fetch failed: ' + err.message);
+		return;
+	}
+
+	// ── Step 3: Verify CID ────────────────────────────────────────────────
+	setState('s3', 'active');
+	setChain('cn-manifest', null, 'active');
+	var localManifest;
+	try {
+		var t2 = performance.now();
+		localManifest = await fetch('scenes/manifest.json').then(function(r) {
+			if (!r.ok) throw new Error('HTTP ' + r.status);
+			return r.json();
+		});
+		var localCid = localManifest.ipfs ? localManifest.ipfs.rootCid : null;
+		if (localCid !== onChainCid) {
+			throw new Error('CID mismatch\nLocal: ' + localCid + '\nOn-chain: ' + onChainCid);
+		}
+		var elapsed3 = (performance.now() - t2).toFixed(0);
+		setState('s3', 'done', elapsed3 + ' ms');
+		setChain('cn-manifest', 'arr-3', 'done');
+		document.getElementById('cidDisplay').textContent = onChainCid.substring(0, 28) + '…';
+		document.getElementById('cidDisplay').className = 'verified';
+	} catch (err) {
+		setState('s3', 'error', 'failed');
+		setChain('cn-manifest', null, 'error');
+		showError(err.message);
+		return;
+	}
+
+	// ── Step 4: Verify shell.x3d SHA-256 ─────────────────────────────────
+	setState('s4', 'active');
+	setChain('cn-shell', null, 'active');
+	try {
+		var t3 = performance.now();
+		var shellMeta = localManifest.chunks['shell.x3d'];
+		var shellResp = await fetch('scenes/shell.x3d', { cache: 'no-store' });
+		if (!shellResp.ok) throw new Error('HTTP ' + shellResp.status);
+		var shellBuf = await shellResp.arrayBuffer();
+		var hashBuf = await crypto.subtle.digest('SHA-256', shellBuf);
+		var actual = Array.from(new Uint8Array(hashBuf))
+			.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+		var expected = (shellMeta ? shellMeta.sha256 : '').toLowerCase();
+		if (expected && actual !== expected) {
+			throw new Error('Shell SHA-256 mismatch\nExpected: ' + expected + '\nActual: ' + actual);
+		}
+		var elapsed4 = (performance.now() - t3).toFixed(0);
+		setState('s4', 'done', elapsed4 + ' ms');
+		setChain('cn-shell', 'arr-4', 'done');
+		setChain('cn-chunks', null, 'done');
+	} catch (err) {
+		setState('s4', 'error', 'failed');
+		setChain('cn-shell', null, 'error');
+		showError('Shell verification failed: ' + err.message);
+		return;
+	}
+
+	// ── All verified — store token and show Enter button ──────────────────
+	sessionStorage.setItem('vbb_verified', JSON.stringify({
+		cid: onChainCid,
+		time: Date.now()
+	}));
+
+	var btn = document.getElementById('enterBtn');
+	btn.style.display = 'block';
+}
+
+function enterGallery() {
+	window.location.href = SCENE_URL;
+}
+
+// Auto-run on load
+window.addEventListener('load', runVerification);
+//]]>
+</script>
+
+</body>
+</html>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Verify-Before-Bind Benchmark</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font: 14px/1.6 'Segoe UI', system-ui, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 24px;
+  min-height: 100vh;
+}
+h1 { font-size: 1.5rem; margin-bottom: 8px; }
+.subtitle { color: #64748b; margin-bottom: 24px; }
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+button {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-baseline {
+  background: #475569;
+  color: #fff;
+}
+.btn-baseline:hover:not(:disabled) { background: #64748b; }
+.btn-proposed {
+  background: #2563eb;
+  color: #fff;
+}
+.btn-proposed:hover:not(:disabled) { background: #3b82f6; }
+.btn-full {
+  background: #22c55e;
+  color: #fff;
+}
+.btn-full:hover:not(:disabled) { background: #4ade80; }
+.iterations {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+}
+.iterations input {
+  width: 60px;
+  padding: 8px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+.results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.result-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 20px;
+}
+.result-card h2 {
+  font-size: 1rem;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #334155;
+}
+.result-card.baseline h2 { color: #94a3b8; }
+.result-card.proposed h2 { color: #60a5fa; }
+.metric {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #334155;
+}
+.metric:last-child { border-bottom: none; }
+.metric-label { color: #94a3b8; }
+.metric-value { font-weight: 600; font-family: 'SF Mono', monospace; }
+.metric-value.good { color: #4ade80; }
+.metric-value.neutral { color: #fbbf24; }
+.status {
+  padding: 16px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-family: 'SF Mono', monospace;
+  font-size: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.status-line { color: #64748b; }
+.status-line.info { color: #60a5fa; }
+.status-line.success { color: #4ade80; }
+.status-line.error { color: #f87171; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+}
+th {
+  background: #0f172a;
+  color: #94a3b8;
+  font-weight: 600;
+}
+td { font-family: 'SF Mono', monospace; }
+.comparison {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 24px;
+}
+.comparison h2 {
+  font-size: 1rem;
+  margin-bottom: 16px;
+  color: #22c55e;
+}
+.overhead {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+.overhead-label {
+  color: #64748b;
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<h1>Verify-Before-Bind Benchmark</h1>
+<p class="subtitle">Compare baseline (no verification) vs proposed (SHA-256 + blockchain) loading</p>
+
+<div class="controls">
+  <button class="btn-baseline" onclick="runBaseline()">Run Baseline</button>
+  <button class="btn-proposed" onclick="runProposed()">Run Proposed</button>
+  <button class="btn-full" onclick="runFullBenchmark()">Run Full Comparison</button>
+  <div class="iterations">
+    <label>Iterations:</label>
+    <input type="number" id="iterations" value="5" min="1" max="20">
+  </div>
+</div>
+
+<div id="statusLog" class="status">
+  <div class="status-line">Ready to run benchmark...</div>
+</div>
+
+<div class="results">
+  <div class="result-card baseline">
+    <h2>Baseline (No Verification)</h2>
+    <div class="metric">
+      <span class="metric-label">Time to First Geometry</span>
+      <span class="metric-value" id="baseline-ttfg">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Total Load Time</span>
+      <span class="metric-value" id="baseline-total">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Shell Load Time</span>
+      <span class="metric-value" id="baseline-shell">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Avg Chunk Load</span>
+      <span class="metric-value" id="baseline-chunk">—</span>
+    </div>
+  </div>
+  
+  <div class="result-card proposed">
+    <h2>Proposed (Verify-Before-Bind)</h2>
+    <div class="metric">
+      <span class="metric-label">Time to First Geometry</span>
+      <span class="metric-value" id="proposed-ttfg">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Total Load Time</span>
+      <span class="metric-value" id="proposed-total">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Shell Load Time</span>
+      <span class="metric-value" id="proposed-shell">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Avg Chunk Load</span>
+      <span class="metric-value" id="proposed-chunk">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">SHA-256 Overhead (per chunk)</span>
+      <span class="metric-value" id="proposed-sha">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Blockchain Query</span>
+      <span class="metric-value" id="proposed-bc">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="comparison" id="comparison" style="display:none;">
+  <h2>Comparison Summary</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Baseline</th>
+        <th>Proposed</th>
+        <th>Overhead</th>
+      </tr>
+    </thead>
+    <tbody id="comparisonBody">
+    </tbody>
+  </table>
+</div>
+
+<div class="comparison" style="margin-top: 24px;">
+  <h2>Per-Chunk Details</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Chunk</th>
+        <th>Bytes</th>
+        <th>Fetch (ms)</th>
+        <th>SHA-256 (ms)</th>
+        <th>Total (ms)</th>
+      </tr>
+    </thead>
+    <tbody id="chunkDetails">
+      <tr><td colspan="5" style="color:#64748b;">Run benchmark to see details...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+// ── Utilities ──
+async function sha256Hex(arrayBuffer) {
+  const digest = await crypto.subtle.digest('SHA-256', arrayBuffer);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function log(msg, type = '') {
+  const statusLog = document.getElementById('statusLog');
+  const line = document.createElement('div');
+  line.className = 'status-line ' + type;
+  line.textContent = `[${new Date().toISOString().substr(11, 12)}] ${msg}`;
+  statusLog.appendChild(line);
+  statusLog.scrollTop = statusLog.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('statusLog').innerHTML = '';
+}
+
+// ── Baseline: No verification ──
+async function loadBaseline() {
+  const results = {
+    shellLoad: 0,
+    chunkLoads: [],
+    totalTime: 0,
+    ttfg: 0 // time to first geometry
+  };
+  
+  const t0 = performance.now();
+  
+  // Load manifest
+  const manifest = await fetch('scenes/manifest.json', { cache: 'no-store' }).then(r => r.json());
+  
+  // Load shell (no verification)
+  const shellT0 = performance.now();
+  const shellRes = await fetch('scenes/shell.x3d', { cache: 'no-store' });
+  const shellBuffer = await shellRes.arrayBuffer();
+  results.shellLoad = performance.now() - shellT0;
+  results.ttfg = performance.now() - t0; // First geometry = shell
+  
+  log(`Shell loaded: ${shellBuffer.byteLength} bytes in ${results.shellLoad.toFixed(2)}ms`);
+  
+  // Load LOD0 chunks in parallel (no verification)
+  const chunkPromises = manifest.sources.map(async (src) => {
+    const chunkT0 = performance.now();
+    const res = await fetch('scenes/' + src.lod0, { cache: 'no-store' });
+    const buffer = await res.arrayBuffer();
+    const loadTime = performance.now() - chunkT0;
+    
+    return {
+      name: src.lod0,
+      bytes: buffer.byteLength,
+      fetchMs: loadTime,
+      sha256Ms: 0,
+      totalMs: loadTime
+    };
+  });
+  
+  results.chunkLoads = await Promise.all(chunkPromises);
+  results.totalTime = performance.now() - t0;
+  
+  results.chunkLoads.forEach(c => {
+    log(`  ${c.name}: ${c.bytes} bytes in ${c.totalMs.toFixed(2)}ms`);
+  });
+  
+  return results;
+}
+
+// ── Proposed: With SHA-256 verification ──
+async function loadProposed(includeBlockchain = false) {
+  const results = {
+    blockchainQuery: 0,
+    shellLoad: 0,
+    shellSha256: 0,
+    chunkLoads: [],
+    totalTime: 0,
+    ttfg: 0
+  };
+  
+  const t0 = performance.now();
+  
+  // Optional: Blockchain query (simulated with real timing if needed)
+  if (includeBlockchain) {
+    try {
+      const bcT0 = performance.now();
+      // Real blockchain query
+      const provider = new ethers.JsonRpcProvider('https://ethereum-sepolia.publicnode.com');
+      const contract = new ethers.Contract(
+        '0xeb62afe54b4805eaec777b99d66959798afb9f76',
+        ['function manifestCid() view returns (string)'],
+        provider
+      );
+      const cid = await contract.manifestCid();
+      results.blockchainQuery = performance.now() - bcT0;
+      log(`Blockchain query: ${results.blockchainQuery.toFixed(2)}ms (CID: ${cid.substring(0,20)}...)`, 'info');
+    } catch (err) {
+      log(`Blockchain query failed: ${err.message}`, 'error');
+      results.blockchainQuery = -1;
+    }
+  }
+  
+  // Load manifest
+  const manifest = await fetch('scenes/manifest.json', { cache: 'no-store' }).then(r => r.json());
+  
+  // Load and verify shell
+  const shellT0 = performance.now();
+  const shellRes = await fetch('scenes/shell.x3d', { cache: 'no-store' });
+  const shellBuffer = await shellRes.arrayBuffer();
+  const shellFetchTime = performance.now() - shellT0;
+  
+  const shaT0 = performance.now();
+  const shellHash = await sha256Hex(shellBuffer);
+  results.shellSha256 = performance.now() - shaT0;
+  results.shellLoad = shellFetchTime;
+  results.ttfg = performance.now() - t0;
+  
+  const expectedShellHash = manifest.chunks['shell.x3d']?.sha256 || '';
+  const shellVerified = shellHash === expectedShellHash.toLowerCase();
+  
+  log(`Shell: ${shellBuffer.byteLength} bytes, fetch=${shellFetchTime.toFixed(2)}ms, SHA-256=${results.shellSha256.toFixed(2)}ms, verified=${shellVerified}`, shellVerified ? 'success' : 'error');
+  
+  // Load and verify LOD0 chunks in parallel
+  const chunkPromises = manifest.sources.map(async (src) => {
+    const chunkPath = src.lod0;
+    const meta = manifest.chunks[chunkPath];
+    
+    const fetchT0 = performance.now();
+    const res = await fetch('scenes/' + chunkPath, { cache: 'no-store' });
+    const buffer = await res.arrayBuffer();
+    const fetchMs = performance.now() - fetchT0;
+    
+    const shaT0 = performance.now();
+    const hash = await sha256Hex(buffer);
+    const sha256Ms = performance.now() - shaT0;
+    
+    const verified = meta ? hash === meta.sha256.toLowerCase() : true;
+    
+    return {
+      name: chunkPath,
+      bytes: buffer.byteLength,
+      fetchMs: fetchMs,
+      sha256Ms: sha256Ms,
+      totalMs: fetchMs + sha256Ms,
+      verified: verified
+    };
+  });
+  
+  results.chunkLoads = await Promise.all(chunkPromises);
+  results.totalTime = performance.now() - t0;
+  
+  results.chunkLoads.forEach(c => {
+    log(`  ${c.name}: ${c.bytes}B, fetch=${c.fetchMs.toFixed(2)}ms, SHA=${c.sha256Ms.toFixed(2)}ms, verified=${c.verified}`, c.verified ? 'success' : 'error');
+  });
+  
+  return results;
+}
+
+// ── Run benchmarks ──
+async function runBaseline() {
+  clearLog();
+  log('Starting Baseline benchmark...', 'info');
+  
+  const iterations = parseInt(document.getElementById('iterations').value) || 5;
+  const allResults = [];
+  
+  for (let i = 0; i < iterations; i++) {
+    log(`--- Iteration ${i + 1}/${iterations} ---`);
+    const result = await loadBaseline();
+    allResults.push(result);
+    await new Promise(r => setTimeout(r, 100)); // Small delay between iterations
+  }
+  
+  // Calculate averages
+  const avg = {
+    ttfg: allResults.reduce((s, r) => s + r.ttfg, 0) / iterations,
+    total: allResults.reduce((s, r) => s + r.totalTime, 0) / iterations,
+    shell: allResults.reduce((s, r) => s + r.shellLoad, 0) / iterations,
+    chunk: allResults.reduce((s, r) => s + r.chunkLoads.reduce((cs, c) => cs + c.totalMs, 0) / r.chunkLoads.length, 0) / iterations
+  };
+  
+  document.getElementById('baseline-ttfg').textContent = avg.ttfg.toFixed(2) + ' ms';
+  document.getElementById('baseline-total').textContent = avg.total.toFixed(2) + ' ms';
+  document.getElementById('baseline-shell').textContent = avg.shell.toFixed(2) + ' ms';
+  document.getElementById('baseline-chunk').textContent = avg.chunk.toFixed(2) + ' ms';
+  
+  log(`Baseline complete. Avg total: ${avg.total.toFixed(2)}ms over ${iterations} iterations`, 'success');
+  
+  return avg;
+}
+
+async function runProposed() {
+  clearLog();
+  log('Starting Proposed (Verify-Before-Bind) benchmark...', 'info');
+  
+  const iterations = parseInt(document.getElementById('iterations').value) || 5;
+  const allResults = [];
+  
+  for (let i = 0; i < iterations; i++) {
+    log(`--- Iteration ${i + 1}/${iterations} ---`);
+    const result = await loadProposed(i === 0); // Only query blockchain on first iteration
+    allResults.push(result);
+    await new Promise(r => setTimeout(r, 100));
+  }
+  
+  // Calculate averages
+  const avg = {
+    ttfg: allResults.reduce((s, r) => s + r.ttfg, 0) / iterations,
+    total: allResults.reduce((s, r) => s + r.totalTime, 0) / iterations,
+    shell: allResults.reduce((s, r) => s + r.shellLoad, 0) / iterations,
+    chunk: allResults.reduce((s, r) => s + r.chunkLoads.reduce((cs, c) => cs + c.totalMs, 0) / r.chunkLoads.length, 0) / iterations,
+    sha256: allResults.reduce((s, r) => s + r.chunkLoads.reduce((cs, c) => cs + c.sha256Ms, 0) / r.chunkLoads.length, 0) / iterations,
+    bc: allResults[0].blockchainQuery
+  };
+  
+  document.getElementById('proposed-ttfg').textContent = avg.ttfg.toFixed(2) + ' ms';
+  document.getElementById('proposed-total').textContent = avg.total.toFixed(2) + ' ms';
+  document.getElementById('proposed-shell').textContent = avg.shell.toFixed(2) + ' ms';
+  document.getElementById('proposed-chunk').textContent = avg.chunk.toFixed(2) + ' ms';
+  document.getElementById('proposed-sha').textContent = avg.sha256.toFixed(2) + ' ms';
+  document.getElementById('proposed-bc').textContent = avg.bc > 0 ? avg.bc.toFixed(2) + ' ms' : 'N/A';
+  
+  // Update chunk details table
+  const lastResult = allResults[allResults.length - 1];
+  const chunkTable = document.getElementById('chunkDetails');
+  chunkTable.innerHTML = '';
+  
+  // Add shell
+  const shellRow = document.createElement('tr');
+  shellRow.innerHTML = `
+    <td>shell.x3d</td>
+    <td>${lastResult.shellLoad ? '~7000' : '—'}</td>
+    <td>${lastResult.shellLoad.toFixed(2)}</td>
+    <td>${lastResult.shellSha256.toFixed(2)}</td>
+    <td>${(lastResult.shellLoad + lastResult.shellSha256).toFixed(2)}</td>
+  `;
+  chunkTable.appendChild(shellRow);
+  
+  // Add chunks
+  lastResult.chunkLoads.forEach(c => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${c.name}</td>
+      <td>${c.bytes}</td>
+      <td>${c.fetchMs.toFixed(2)}</td>
+      <td>${c.sha256Ms.toFixed(2)}</td>
+      <td>${c.totalMs.toFixed(2)}</td>
+    `;
+    chunkTable.appendChild(row);
+  });
+  
+  log(`Proposed complete. Avg total: ${avg.total.toFixed(2)}ms over ${iterations} iterations`, 'success');
+  
+  return avg;
+}
+
+async function runFullBenchmark() {
+  const baselineAvg = await runBaseline();
+  await new Promise(r => setTimeout(r, 500));
+  const proposedAvg = await runProposed();
+  
+  // Show comparison
+  document.getElementById('comparison').style.display = 'block';
+  const tbody = document.getElementById('comparisonBody');
+  tbody.innerHTML = '';
+  
+  const metrics = [
+    { label: 'Time to First Geometry', baseline: baselineAvg.ttfg, proposed: proposedAvg.ttfg },
+    { label: 'Total Load Time', baseline: baselineAvg.total, proposed: proposedAvg.total },
+    { label: 'Shell Load', baseline: baselineAvg.shell, proposed: proposedAvg.shell },
+    { label: 'Avg Chunk Load', baseline: baselineAvg.chunk, proposed: proposedAvg.chunk },
+  ];
+  
+  metrics.forEach(m => {
+    const overhead = ((m.proposed - m.baseline) / m.baseline * 100).toFixed(1);
+    const overheadMs = (m.proposed - m.baseline).toFixed(2);
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${m.label}</td>
+      <td>${m.baseline.toFixed(2)} ms</td>
+      <td>${m.proposed.toFixed(2)} ms</td>
+      <td style="color: ${parseFloat(overhead) > 50 ? '#f87171' : '#fbbf24'}">+${overheadMs} ms (+${overhead}%)</td>
+    `;
+    tbody.appendChild(row);
+  });
+  
+  // Add SHA-256 overhead row
+  const shaRow = document.createElement('tr');
+  shaRow.innerHTML = `
+    <td>SHA-256 Verification (per chunk)</td>
+    <td>—</td>
+    <td>${proposedAvg.sha256.toFixed(2)} ms</td>
+    <td style="color: #4ade80">Security overhead</td>
+  `;
+  tbody.appendChild(shaRow);
+  
+  log('Full benchmark complete!', 'success');
+}
+</script>
+
+<!-- ethers.js for blockchain queries -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+
+</body>
+</html>

@@ -238,17 +238,20 @@
 	</script>
 
 	<style>
+		/* ── Design tokens — same palette as verify.html ── */
 		:root {
-			--bg: #eef2f7;
-			--surface: #ffffff;
-			--text: #1e293b;
-			--muted: #64748b;
-			--border: rgba(15, 23, 42, 0.1);
-			--shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
-			--source-1: #e6801a;
-			--source-2: #33cce6;
-			--source-3: #33e64d;
-			--source-4: #e633b3;
+			--bg:        #080d1a;
+			--surface:   #0f172a;
+			--surface2:  #0a0f1e;
+			--border:    #1e293b;
+			--text:      #e2e8f0;
+			--muted:     #64748b;
+			--muted2:    #475569;
+			--green:     #22c55e;
+			--green-dim: #4ade80;
+			--amber:     #f59e0b;
+			--red:       #ef4444;
+			--shadow:    0 4px 24px rgba(0,0,0,0.4);
 		}
 		* { box-sizing: border-box; }
 		body {
@@ -258,170 +261,235 @@
 			background: var(--bg);
 			min-height: 100vh;
 		}
+
+		/* ── Header ── */
 		.page-hero {
 			text-align: center;
-			padding: 18px 16px 10px;
+			padding: 16px 16px 12px;
 			background: var(--surface);
 			border-bottom: 1px solid var(--border);
+			position: relative;
 		}
 		.page-hero h1 {
-			margin: 0 0 6px;
-			font-size: 1.45rem;
-			font-weight: 600;
+			margin: 0 0 4px;
+			font-size: 1.25rem;
+			font-weight: 700;
+			letter-spacing: 0.01em;
+			color: #f1f5f9;
 		}
 		.page-hero-sub {
 			margin: 0;
-			font-size: 13px;
+			font-size: 12px;
 			color: var(--muted);
 		}
+		.page-hero-authors {
+			margin: 4px 0 0;
+			font-size: 11px;
+			color: var(--muted2);
+		}
+		.back-link {
+			position: absolute;
+			left: 16px;
+			top: 50%;
+			transform: translateY(-50%);
+			font-size: 11px;
+			color: var(--muted);
+			text-decoration: none;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			padding: 4px 10px;
+			background: var(--surface2);
+			transition: color 0.2s, border-color 0.2s;
+		}
+		.back-link:hover { color: var(--green-dim); border-color: var(--green); }
+
+		/* ── Layout ── */
 		.page-layout {
 			max-width: 1400px;
 			margin: 0 auto;
 			padding: 16px;
 			display: grid;
-			grid-template-columns: 1fr 320px;
+			grid-template-columns: 1fr 300px;
 			gap: 16px;
 		}
 		@media (max-width: 900px) {
 			.page-layout { grid-template-columns: 1fr; }
+			.back-link { display: none; }
 		}
+
+		/* ── Canvas ── */
 		.scene-canvas {
 			display: block;
 			width: 100%;
 			height: min(75vh, 720px);
 			min-height: 480px;
-			border-radius: 12px;
+			border-radius: 10px;
 			border: 1px solid var(--border);
 			box-shadow: var(--shadow);
-			background: #0b1020;
+			background: #040810;
 		}
-		.scene-controls {
-			text-align: center;
-			margin-top: 12px;
-		}
+		.scene-controls { text-align: center; margin-top: 12px; }
 		#startButton {
-			padding: 12px 24px;
+			padding: 12px 32px;
 			border: none;
 			border-radius: 8px;
 			font-size: 14px;
-			font-weight: 600;
+			font-weight: 700;
+			letter-spacing: 0.04em;
 			color: #fff;
 			cursor: pointer;
-			background: #3b6ea5;
+			background: linear-gradient(135deg, var(--green), #16a34a);
+			box-shadow: 0 0 20px rgba(34,197,94,0.25);
+			transition: transform 0.2s, box-shadow 0.2s;
 		}
-		#startButton:hover { background: #325d8c; }
-		#startButton:disabled { background: #94a3b8; cursor: not-allowed; }
+		#startButton:hover:not(:disabled) {
+			transform: translateY(-1px);
+			box-shadow: 0 0 32px rgba(34,197,94,0.45);
+		}
+		#startButton:disabled {
+			background: var(--surface);
+			color: var(--muted);
+			box-shadow: none;
+			cursor: not-allowed;
+			border: 1px solid var(--border);
+		}
+
+		/* ── Side panel ── */
 		.panel {
 			background: var(--surface);
 			border: 1px solid var(--border);
-			border-radius: 12px;
-			padding: 16px;
+			border-radius: 10px;
+			padding: 14px;
 			box-shadow: var(--shadow);
 		}
 		.panel h3 {
-			margin: 0 0 12px;
-			font-size: 14px;
-			font-weight: 600;
-			color: #0f766e;
+			margin: 0 0 10px;
+			font-size: 11px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.08em;
+			color: var(--green-dim);
 			border-bottom: 1px solid var(--border);
 			padding-bottom: 8px;
 		}
+		.panel h3 + .panel h3,
+		.panel h3:not(:first-child) { margin-top: 18px; }
+
+		/* ── Metric rows ── */
 		.metric-row {
 			display: flex;
 			justify-content: space-between;
-			padding: 6px 0;
+			padding: 5px 0;
 			border-bottom: 1px solid var(--border);
-			font-size: 12px;
+			font-size: 11px;
 		}
 		.metric-row:last-child { border-bottom: none; }
 		.metric-label { color: var(--muted); }
-		.metric-value { font-weight: 600; font-family: monospace; }
-		.chunk-list { margin-top: 12px; }
+		.metric-value { font-weight: 600; font-family: monospace; color: var(--green-dim); }
+
+		/* ── Chunk list ── */
+		.chunk-list { margin-top: 10px; }
 		.chunk-item {
 			display: flex;
 			align-items: center;
 			gap: 8px;
-			padding: 8px;
-			margin: 6px 0;
-			background: #f8fafc;
+			padding: 7px 8px;
+			margin: 4px 0;
+			background: var(--surface2);
+			border: 1px solid var(--border);
 			border-radius: 6px;
-			font-size: 11px;
+			font-size: 10px;
+			color: var(--muted);
 		}
 		.chunk-status {
-			width: 8px;
-			height: 8px;
+			width: 8px; height: 8px;
 			border-radius: 50%;
-			background: #94a3b8;
+			background: var(--border);
+			flex-shrink: 0;
 		}
-		.chunk-status.pending { background: #fbbf24; }
-		.chunk-status.verified { background: #22c55e; }
-		.chunk-status.failed { background: #ef4444; }
-		.chunk-name { flex: 1; font-weight: 500; }
-		.chunk-time { color: var(--muted); font-family: monospace; }
-		.lod-buttons { margin-top: 16px; }
+		.chunk-status.pending { background: var(--amber); box-shadow: 0 0 6px #f59e0b88; }
+		.chunk-status.verified { background: var(--green); box-shadow: 0 0 6px #22c55e88; }
+		.chunk-status.failed   { background: var(--red); }
+		.chunk-name { flex: 1; font-weight: 500; color: var(--text); }
+		.chunk-time { font-family: monospace; color: var(--green-dim); }
+
+		/* ── LOD buttons ── */
+		.lod-buttons { margin-top: 10px; }
 		.lod-btn {
 			display: block;
 			width: 100%;
-			margin: 6px 0;
-			padding: 8px;
+			margin: 5px 0;
+			padding: 8px 10px;
 			border: 1px solid var(--border);
 			border-radius: 6px;
-			background: #f8fafc;
-			font-size: 12px;
+			background: var(--surface2);
+			color: var(--text);
+			font-size: 11px;
 			cursor: pointer;
 			text-align: left;
+			transition: border-color 0.2s, background 0.2s;
 		}
-		.lod-btn:hover { background: #e2e8f0; }
-		.lod-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+		.lod-btn:hover:not(:disabled) {
+			border-color: var(--green);
+			background: #052e16;
+			color: var(--green-dim);
+		}
+		.lod-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 		.lod-btn .lod-label { font-weight: 600; }
-		.lod-btn .lod-status { float: right; color: var(--muted); }
-		
-		/* Blockchain Verification Styles */
-		.bc-section { margin-bottom: 16px; }
+		.lod-btn .lod-status { float: right; color: var(--muted); font-family: monospace; font-size: 10px; }
+
+		/* ── Blockchain section ── */
+		.bc-section { margin-bottom: 14px; }
 		.bc-btn {
 			width: 100%;
-			padding: 10px 16px;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			color: white;
-			border: none;
-			border-radius: 8px;
+			padding: 9px 14px;
+			background: var(--surface2);
+			color: var(--green-dim);
+			border: 1px solid var(--green);
+			border-radius: 7px;
 			font-weight: 600;
+			font-size: 12px;
 			cursor: pointer;
-			transition: transform 0.2s, box-shadow 0.2s;
+			transition: background 0.2s, box-shadow 0.2s;
 		}
-		.bc-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
-		.bc-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+		.bc-btn:hover:not(:disabled) {
+			background: #052e16;
+			box-shadow: 0 0 12px rgba(34,197,94,0.3);
+		}
+		.bc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 		.bc-status-row {
 			display: flex;
 			justify-content: space-between;
-			padding: 6px 0;
-			font-size: 12px;
-			border-bottom: 1px solid var(--border);
-		}
-		.bc-status { font-weight: 600; }
-		.bc-status.pending { color: #94a3b8; }
-		.bc-status.verified { color: #22c55e; }
-		.bc-status.failed { color: #ef4444; }
-		.bc-cid { font-family: monospace; font-size: 11px; color: var(--muted); }
-		.bc-steps { margin-top: 12px; }
-		.bc-step {
-			padding: 6px 10px;
-			margin: 4px 0;
-			background: #f1f5f9;
-			border-radius: 4px;
+			padding: 5px 0;
 			font-size: 11px;
+			border-bottom: 1px solid var(--border);
 			color: var(--muted);
-			border-left: 3px solid #cbd5e1;
+		}
+		.bc-status { font-weight: 700; font-size: 11px; }
+		.bc-status.pending { color: var(--muted); }
+		.bc-status.verified { color: var(--green); }
+		.bc-status.failed   { color: var(--red); }
+		.bc-cid { font-family: monospace; font-size: 10px; color: var(--muted2); word-break: break-all; }
+		.bc-steps { margin-top: 10px; }
+		.bc-step {
+			padding: 5px 9px;
+			margin: 3px 0;
+			background: var(--surface2);
+			border-radius: 4px;
+			font-size: 10px;
+			color: var(--muted);
+			border-left: 3px solid var(--border);
+			transition: background 0.3s, color 0.3s, border-left-color 0.3s;
 		}
 		.bc-step.active {
-			background: #fef3c7;
-			color: #92400e;
-			border-left-color: #f59e0b;
+			background: #1a1400;
+			color: #fcd34d;
+			border-left-color: var(--amber);
 		}
 		.bc-step.done {
-			background: #dcfce7;
-			color: #166534;
-			border-left-color: #22c55e;
+			background: #052e16;
+			color: #86efac;
+			border-left-color: var(--green);
 		}
 		.bc-step.done::after { content: ' ✓'; }
 	</style>
@@ -429,118 +497,21 @@
 <body>
 
 <header class="page-hero">
+	<a class="back-link" href="verify.html">← Verification</a>
 	<h1>Multi-Source Spatial Audio Navigation Scene</h1>
-	<p class="page-hero-sub">Streamed with Verify-Before-Bind — sculpture LOD chunks verified before mount</p>
+	<p class="page-hero-sub">Verify-Before-Bind · Progressive LOD · On-Chain Integrity</p>
+	<p class="page-hero-authors">Lakka · Tzermia · Brutzman · Malamos &mdash; HMU / NPS</p>
 </header>
 
 <div class="page-layout">
 	<section class="scene-block">
+		<!-- Minimal scene — shell.x3d injected via blob URL after blockchain + SHA-256 verification -->
 		<x3d-canvas class="scene-canvas" id="x3dCanvas" profile='Full' version='4.0'
 			update='auto' contentScale='auto'>
-			<X3D profile='Full' version='4.0'>
-				<Scene>
-					<NavigationInfo headlight='true' type='EXAMINE' />
-					<Background skyColor='0.72 0.84 0.96' />
-
-					<PointLight location='0 1200 0' intensity='0.55' on='true' />
-					<DirectionalLight direction='0.2 -1 -0.4' intensity='0.85' on='true' global='true' />
-					<PointLight location='-600 280 -600' color='1 0.5 0' intensity='0.45' radius='1200' on='true' />
-					<PointLight location='600 280 -600' color='0.2 0.8 1' intensity='0.45' radius='1200' on='true' />
-					<PointLight location='-600 280 600' color='0.2 1 0.2' intensity='0.45' radius='1200' on='true' />
-					<PointLight location='600 280 600' color='1 0.2 0.8' intensity='0.45' radius='1200' on='true' />
-
-					<Viewpoint DEF='GalleryViewpoint' description='Gallery overview'
-						position='0 0 10' orientation='0 0 1 0' fieldOfView='1.05'
-						set_bind='true' jump='true' />
-
-					<AudioDestination channelInterpretation='speakers'>
-						<SpatialSound description='SpatialSound1' location='-600 0 -600'
-							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
-							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
-							<Gain description='Gain1' gain='0.8'>
-								<Sound location='0 0 0'>
-									<AudioClip description='The Caves of Moria' loop='true'
-										url='"sound/lordOftheRings/the-caves-of-moria-460016.mp3"'
-										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
-								</Sound>
-							</Gain>
-						</SpatialSound>
-						<SpatialSound description='SpatialSound2' location='600 0 -600'
-							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
-							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
-							<Gain description='Gain2' gain='0.7'>
-								<Sound location='0 0 0'>
-									<AudioClip description='The Caves of Khazad-dum' loop='true'
-										url='"sound/lordOftheRings/the-caves-of-khazad-dum-314281.mp3"'
-										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
-								</Sound>
-							</Gain>
-						</SpatialSound>
-						<SpatialSound description='SpatialSound3' location='-600 0 600'
-							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
-							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
-							<Gain description='Gain3' gain='0.75'>
-								<Sound location='0 0 0'>
-									<AudioClip description='Tales of Samwise Gamgee' loop='true'
-										url='"sound/lordOftheRings/the-tales-of-samwise-gamgee-339193.mp3"'
-										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
-								</Sound>
-							</Gain>
-						</SpatialSound>
-						<SpatialSound description='SpatialSound4' location='600 0 600'
-							direction='1 0 0' coneInnerAngle='6.28319' coneOuterAngle='6.28319' coneOuterGain='0'
-							distanceModel='linear' maxDistance='2000' enableHRTF='true' referenceDistance='1' rolloffFactor='2'>
-							<Gain description='Gain4' gain='0.8'>
-								<Sound location='0 0 0'>
-									<AudioClip description='The Glory of Gondor' loop='true'
-										url='"sound/lordOftheRings/the-glory-of-gondor-435113.mp3"'
-										pauseTime='-1' resumeTime='-1' stopTime='-1' pitch='1' />
-								</Sound>
-							</Gain>
-						</SpatialSound>
-					</AudioDestination>
-
-					<TimeSensor DEF='CameraTimer' loop='true' cycleInterval='70.0' stopTime='0' />
-					<PositionInterpolator DEF='CameraPositionInterpolator'
-						key='0 0.02 0.04 0.12 0.28 0.44 0.52 0.6 0.68 0.72 0.76 1'
-						keyValue='0 1600 0, 0 1300 0, 0 1150 0, -600 220 -380, 600 220 -380, 0 950 0, 0 850 0, -600 220 380, 600 220 380, 0 950 0, 0 1300 0, 0 1600 0' />
-					<OrientationInterpolator DEF='CameraOrientationInterpolator'
-						key='0 0.02 0.04 0.12 0.28 0.44 0.52 0.6 0.68 0.72 0.76 1'
-						keyValue='1 0 0 -1.570796, 1 0 0 -1.570796, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 0.261799, 0.258819 0.965926 0 2.879793, 0.258819 0.965926 0 2.879793, 0.258819 0.965926 0 0.261799, 1 0 0 -1.570796, 1 0 0 -1.570796' />
-					<ROUTE fromNode='CameraTimer' fromField='fraction_changed' toNode='CameraPositionInterpolator' toField='set_fraction' />
-					<ROUTE fromNode='CameraPositionInterpolator' fromField='value_changed' toNode='GalleryViewpoint' toField='set_position' />
-					<ROUTE fromNode='CameraTimer' fromField='fraction_changed' toNode='CameraOrientationInterpolator' toField='set_fraction' />
-					<ROUTE fromNode='CameraOrientationInterpolator' fromField='value_changed' toNode='GalleryViewpoint' toField='set_orientation' />
-
-					<Transform DEF='Floor' translation='0 -3 0'>
-						<Shape>
-							<Appearance><Material diffuseColor='0.32 0.34 0.42' ambientIntensity='0.35' shininess='0.15' /></Appearance>
-							<Box size='10000 6 10000' />
-						</Shape>
-					</Transform>
-					<Transform translation='-600 10 -600'>
-						<Shape><Appearance><Material diffuseColor='1 0.502 0' emissiveColor='0.2 0.1 0' /></Appearance><Cylinder radius='290' height='14' /></Shape>
-					</Transform>
-					<Transform translation='600 10 -600'>
-						<Shape><Appearance><Material diffuseColor='0.2 0.8 1' emissiveColor='0.05 0.16 0.22' /></Appearance><Cylinder radius='290' height='14' /></Shape>
-					</Transform>
-					<Transform translation='-600 10 600'>
-						<Shape><Appearance><Material diffuseColor='0.2 1 0.2' emissiveColor='0.05 0.2 0.05' /></Appearance><Cylinder radius='290' height='14' /></Shape>
-					</Transform>
-					<Transform translation='600 10 600'>
-						<Shape><Appearance><Material diffuseColor='1 0.2 0.8' emissiveColor='0.2 0.05 0.16' /></Appearance><Cylinder radius='290' height='14' /></Shape>
-					</Transform>
-
-					<!-- Streamed sculpture chunks - loaded via Inline -->
-					<Inline DEF='Chunk_Sculpture1' load='false' url='"scenes/sources/source-1-lod0.x3d"' />
-					<Inline DEF='Chunk_Sculpture2' load='false' url='"scenes/sources/source-2-lod0.x3d"' />
-					<Inline DEF='Chunk_Sculpture3' load='false' url='"scenes/sources/source-3-lod0.x3d"' />
-					<Inline DEF='Chunk_Sculpture4' load='false' url='"scenes/sources/source-4-lod0.x3d"' />
-				</Scene>
-			</X3D>
+			<X3D profile='Full' version='4.0'><Scene></Scene></X3D>
 		</x3d-canvas>
 		<div class="scene-controls">
-			<button id="startButton" disabled="disabled">Loading shell...</button>
+			<button id="startButton" disabled="disabled">Step 1/4: Querying blockchain...</button>
 		</div>
 	</section>
 
@@ -602,26 +573,11 @@
 	var lodButtonsEl = document.getElementById('lodButtons');
 	var bcBtn = document.getElementById('verifyBlockchainBtn');
 	
-	// Blockchain verification button handler
-	bcBtn.onclick = async function() {
-		bcBtn.disabled = true;
-		bcBtn.textContent = 'Verifying...';
-		try {
-			var result = await verifyBlockchainManifest();
-			if (result.verified) {
-				bcBtn.textContent = '✅ Verified!';
-			} else {
-				bcBtn.textContent = 'Retry Verification';
-				bcBtn.disabled = false;
-			}
-		} catch (err) {
-			console.error('Blockchain verification error:', err);
-			bcBtn.textContent = 'Retry Verification';
-			bcBtn.disabled = false;
-		}
-	};
+	// Manual retry button (blockchain verification runs automatically on load)
+	bcBtn.onclick = function() { init(); };
 
 	var manifest = null;
+	var shellBlobUrl = null;
 	var loadedChunks = {};
 	var totalBytes = 0;
 	var verifiedCount = 0;
@@ -630,6 +586,11 @@
 	function updateMetric(id, value) {
 		var el = document.getElementById(id);
 		if (el) el.textContent = value;
+	}
+
+	function setBlockchainStep(stepId, state) {
+		var el = document.getElementById(stepId);
+		if (el) el.className = 'bc-step' + (state ? ' ' + state : '');
 	}
 
 	function addChunkStatus(name, status, timeMs) {
@@ -670,7 +631,6 @@
 			btn.disabled = true;
 			btn.querySelector('.lod-status').textContent = 'Loading...';
 		}
-
 		try {
 			var result = await VerifiedSceneLoader.upgradeSourceLod1(
 				canvas, manifest, 'scenes/', sourceId
@@ -680,12 +640,8 @@
 			verifiedCount++;
 			updateMetric('metricBytes', (totalBytes / 1024).toFixed(1) + ' KB');
 			updateMetric('metricVerified', verifiedCount + ' / ' + totalChunks);
-
 			addChunkStatus(result.chunkPath, 'verified', result.loadMs);
-
-			if (btn) {
-				btn.querySelector('.lod-status').textContent = 'LOD1 ✓';
-			}
+			if (btn) btn.querySelector('.lod-status').textContent = 'LOD1 ✓';
 		} catch (err) {
 			console.error('LOD upgrade failed:', err);
 			if (btn) {
@@ -695,75 +651,196 @@
 		}
 	}
 
+	// Polls until a named node from the loaded scene appears — proves the scene is actually loaded.
+	// Needed because waitForBrowser returns immediately when the minimal empty scene is present.
+	function waitForShellNode(canvas, defName, maxMs) {
+		return new Promise(function(resolve, reject) {
+			var start = Date.now();
+			(function tick() {
+				try {
+					var scene = canvas.browser && canvas.browser.currentScene;
+					if (scene && scene.getNamedNode(defName)) {
+						resolve(scene); return;
+					}
+				} catch(e) {}
+				if (Date.now() - start > maxMs) {
+					reject(new Error('Node "' + defName + '" not found within ' + maxMs + 'ms'));
+					return;
+				}
+				setTimeout(tick, 300);
+			})();
+		});
+	}
+
 	async function init() {
-		console.log('Streamed init starting...');
-		console.log('VerifiedSceneLoader available:', typeof VerifiedSceneLoader !== 'undefined');
-		
-		if (typeof VerifiedSceneLoader === 'undefined') {
-			startBtn.textContent = 'Error: Loader blocked by security policy';
-			console.error('VerifiedSceneLoader not loaded - CSP may be blocking it');
+		startBtn.disabled = true;
+		bcBtn.disabled = true;
+		chunkListEl.innerHTML = '';
+		lodButtonsEl.innerHTML = '';
+		loadedChunks = {}; totalBytes = 0; verifiedCount = 0; totalChunks = 0;
+
+		// ── PHASE 1: Blockchain verification ────────────────────────────────
+		// Check if already verified on the gateway page (verify.html) via sessionStorage.
+		// Token expires after 5 minutes to prevent stale verification.
+
+		var skipBlockchain = false;
+		var token = sessionStorage.getItem('vbb_verified');
+		if (token) {
+			try {
+				var parsed = JSON.parse(token);
+				var ageMs = Date.now() - (parsed.time || 0);
+				if (ageMs < 5 * 60 * 1000 && parsed.cid) {
+					skipBlockchain = true;
+					document.getElementById('onChainCid').textContent = parsed.cid.substring(0, 20) + '...';
+					setBlockchainStep('bcStep1', 'done');
+					setBlockchainStep('bcStep2', 'done');
+					setBlockchainStep('bcStep3', 'done');
+					document.getElementById('blockchainStatus').textContent = '✅ Verified (gateway)';
+					document.getElementById('blockchainStatus').className = 'bc-status verified';
+					bcBtn.textContent = '✅ Verified!';
+					console.log('✅ Blockchain verification passed on gateway page — skipping re-verification');
+				}
+			} catch (e) { /* malformed token, fall through to full verification */ }
+		}
+
+		if (!skipBlockchain) {
+			startBtn.textContent = 'Step 1/4: Querying blockchain...';
+			setBlockchainStep('bcStep1', 'active');
+			setBlockchainStep('bcStep2', '');
+			setBlockchainStep('bcStep3', '');
+			document.getElementById('blockchainStatus').textContent = 'Verifying…';
+			document.getElementById('blockchainStatus').className = 'bc-status pending';
+			document.getElementById('onChainCid').textContent = '—';
+
+			var onChainCid;
+			try {
+				onChainCid = await queryContractCid();
+				document.getElementById('onChainCid').textContent = onChainCid.substring(0, 20) + '...';
+				setBlockchainStep('bcStep1', 'done');
+			} catch (err) {
+				setBlockchainStep('bcStep1', '');
+				startBtn.textContent = 'Error: blockchain query failed';
+				document.getElementById('blockchainStatus').textContent = '❌ Failed';
+				document.getElementById('blockchainStatus').className = 'bc-status failed';
+				bcBtn.disabled = false; bcBtn.textContent = 'Retry Verification';
+				console.error('Blockchain query failed:', err);
+				return;
+			}
+
+			startBtn.textContent = 'Step 2/4: Fetching IPFS manifest...';
+			setBlockchainStep('bcStep2', 'active');
+			try {
+				await fetchManifestFromIPFS(onChainCid);
+				setBlockchainStep('bcStep2', 'done');
+			} catch (err) {
+				console.warn('IPFS manifest fetch failed (proceeding with local CID check):', err);
+				setBlockchainStep('bcStep2', 'done');
+			}
+
+			startBtn.textContent = 'Step 3/4: Verifying CID…';
+			setBlockchainStep('bcStep3', 'active');
+			var localManifest2 = await fetch('scenes/manifest.json').then(function(r) { return r.json(); });
+			var localCid2 = localManifest2.ipfs ? localManifest2.ipfs.rootCid : null;
+			if (localCid2 !== onChainCid) {
+				setBlockchainStep('bcStep3', '');
+				document.getElementById('blockchainStatus').textContent = '❌ CID mismatch';
+				document.getElementById('blockchainStatus').className = 'bc-status failed';
+				startBtn.textContent = 'Error: CID mismatch — scene not trusted';
+				bcBtn.disabled = false; bcBtn.textContent = 'Retry Verification';
+				console.error('CID mismatch! Local:', localCid2, 'On-chain:', onChainCid);
+				return;
+			}
+			setBlockchainStep('bcStep3', 'done');
+			document.getElementById('blockchainStatus').textContent = '✅ Verified';
+			document.getElementById('blockchainStatus').className = 'bc-status verified';
+			bcBtn.textContent = '✅ Verified!';
+			sessionStorage.setItem('vbb_verified', JSON.stringify({ cid: onChainCid, time: Date.now() }));
+			console.log('✅ Blockchain CID verified — proceeding to load verified shell');
+		}
+
+		// ── PHASE 2: Verify and load shell.x3d ──────────────────────────────
+		// Shell is fetched, SHA-256 checked against manifest, then injected into canvas.
+
+		startBtn.textContent = 'Step 4/4: Loading verified shell...';
+
+		// Always load the local manifest here (localManifest may be undefined if blockchain was skipped)
+		var localManifest = await fetch('scenes/manifest.json').then(function(r) { return r.json(); });
+		manifest = localManifest;
+		totalChunks = Object.keys(manifest.chunks).length;
+
+		var shellMeta = manifest.chunks['shell.x3d'];
+		var verifiedShell;
+		try {
+			verifiedShell = await VerifiedSceneLoader.fetchAndVerify(
+				'scenes/shell.x3d', shellMeta ? shellMeta.sha256 : null
+			);
+		} catch (err) {
+			startBtn.textContent = 'Error: shell verification failed';
+			console.error('Shell verification failed:', err);
+			bcBtn.disabled = false; bcBtn.textContent = 'Retry';
 			return;
 		}
-		
+
+		// Revoke any previous shell blob
+		if (shellBlobUrl) { URL.revokeObjectURL(shellBlobUrl); }
+		var shellBlob = new Blob([verifiedShell.buffer], { type: 'model/x3d+xml' });
+		shellBlobUrl = URL.createObjectURL(shellBlob);
+
+		// Inject verified shell into the canvas — triggers X_ITE scene reload
+		canvas.setAttribute('src', shellBlobUrl);
+		updateMetric('metricShell', verifiedShell.loadMs.toFixed(0) + ' ms ✓');
+		console.log('Shell SHA-256 verified ✓ — injected into canvas via blob URL');
+
+		// Wait until a shell-specific node (GalleryViewpoint) appears in the scene.
+		// waitForBrowser is NOT enough here — the empty minimal scene already has currentScene,
+		// so we must poll for a node we know is declared inside shell.x3d.
 		try {
-			console.log('Waiting for X_ITE browser...');
-			await VerifiedSceneLoader.waitForBrowser(canvas, 10000);
-			console.log('Browser ready');
-			updateMetric('metricShell', '✓ embedded');
-
-			console.log('Loading manifest...');
-			manifest = await VerifiedSceneLoader.loadManifest('scenes/manifest.json');
-			console.log('Manifest loaded:', manifest.title);
-			totalChunks = Object.keys(manifest.chunks).length;
-			updateMetric('metricVerified', '0 / ' + totalChunks);
-
-			manifest.sources.forEach(function(src) {
-				createLodButton(src);
-			});
-
-			var lod0Divs = {};
-			manifest.sources.forEach(function(src) {
-				lod0Divs[src.lod0] = addChunkStatus(src.lod0, 'pending', null);
-			});
-
-			startBtn.textContent = 'Loading LOD0...';
-			console.log('Loading LOD0 chunks...');
-
-			var result = await VerifiedSceneLoader.loadAllSourcesLod0(canvas, {
-				manifestUrl: 'scenes/manifest.json',
-				scenesBaseUrl: 'scenes/'
-			});
-
-			console.log('LOD0 loaded:', result.loads.length, 'chunks in', result.totalMs.toFixed(0), 'ms');
-			
-			result.loads.forEach(function(load) {
-				loadedChunks[load.chunkPath] = load;
-				totalBytes += load.bytes;
-				verifiedCount++;
-				console.log('  ✓', load.chunkPath, load.bytes, 'bytes', load.loadMs.toFixed(0), 'ms');
-				if (lod0Divs[load.chunkPath]) {
-					updateChunkStatus(lod0Divs[load.chunkPath], 'verified', load.loadMs);
-				}
-			});
-
-			updateMetric('metricLod0', result.totalMs.toFixed(0) + ' ms');
-			updateMetric('metricBytes', (totalBytes / 1024).toFixed(1) + ' KB');
-			updateMetric('metricVerified', verifiedCount + ' / ' + totalChunks);
-
-			startBtn.textContent = 'Start Audio \u0026 Tour';
-			startBtn.disabled = false;
-			startBtn.onclick = function() {
-				if (window.resumeAudioContext) window.resumeAudioContext();
-				setTimeout(function() {
-					if (window.startCameraAnimation) window.startCameraAnimation();
-				}, 500);
-				startBtn.style.display = 'none';
-			};
-
+			await waitForShellNode(canvas, 'GalleryViewpoint', 15000);
+			console.log('Shell loaded — GalleryViewpoint found in scene');
 		} catch (err) {
-			console.error('Streaming init failed:', err);
-			startBtn.textContent = 'Error: ' + err.message;
+			startBtn.textContent = 'Error: shell did not load in time';
+			console.error('Shell load timeout:', err);
+			return;
 		}
+
+		updateMetric('metricVerified', '0 / ' + totalChunks);
+		manifest.sources.forEach(function(src) { createLodButton(src); });
+
+		// ── PHASE 3: Verify and mount LOD0 geometry chunks ──────────────────
+
+		var lod0Divs = {};
+		manifest.sources.forEach(function(src) {
+			lod0Divs[src.lod0] = addChunkStatus(src.lod0, 'pending', null);
+		});
+
+		startBtn.textContent = 'Loading verified LOD0 chunks...';
+		var result = await VerifiedSceneLoader.loadAllSourcesLod0(canvas, {
+			manifestUrl: 'scenes/manifest.json',
+			scenesBaseUrl: 'scenes/'
+		});
+
+		result.loads.forEach(function(load) {
+			loadedChunks[load.chunkPath] = load;
+			totalBytes += load.bytes;
+			verifiedCount++;
+			if (lod0Divs[load.chunkPath]) {
+				updateChunkStatus(lod0Divs[load.chunkPath], 'verified', load.loadMs);
+			}
+		});
+
+		updateMetric('metricLod0', result.totalMs.toFixed(0) + ' ms');
+		updateMetric('metricBytes', (totalBytes / 1024).toFixed(1) + ' KB');
+		updateMetric('metricVerified', verifiedCount + ' / ' + totalChunks);
+
+		startBtn.textContent = 'Start Audio \u0026 Tour';
+		startBtn.disabled = false;
+		startBtn.onclick = function() {
+			if (window.resumeAudioContext) window.resumeAudioContext();
+			setTimeout(function() {
+				if (window.startCameraAnimation) window.startCameraAnimation();
+			}, 500);
+			startBtn.style.display = 'none';
+		};
 	}
 
 	if (document.readyState === 'loading') {

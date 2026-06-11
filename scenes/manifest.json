@@ -42,8 +42,8 @@
   "chunks": {
     "shell.x3d": {
       "path": "shell.x3d",
-      "sha256": "f927a5e027e0ed25da40f38c7980d9e15fc611b6a63274720a309a00779cdb00",
-      "bytes": 6851,
+      "sha256": "86987d67f5a22fc61ff1f0d1256b327a63c5c981cc2ad0556f02cc2f54e522d4",
+      "bytes": 7080,
       "ipfsCid": null,
       "ipfsUrl": "https://gateway.pinata.cloud/ipfs/bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu/shell.x3d"
     },
