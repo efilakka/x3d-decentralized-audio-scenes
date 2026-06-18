@@ -432,6 +432,7 @@ var transformArray = [],
 	};
 
 	// Main update loop - updates listener and source positions
+	var spatialDebugCounter = 0;
 	main = function main() {
 		if (!x3dBrowser || !x3dScene || !spatialSound) {
 			requestAnimationFrame(main);
@@ -446,6 +447,14 @@ var transformArray = [],
 					: null;
 				if (pose && pose.position && pose.position.length >= 3) {
 					context.listener.setPosition(pose.position[0], pose.position[1], pose.position[2]);
+					
+					// Debug: Log listener position every 5 seconds (300 frames at 60fps)
+					spatialDebugCounter++;
+					if (spatialDebugCounter % 300 === 1) {
+						console.log('🎧 Spatial Audio - Listener position:', 
+							pose.position.map(function(v) { return v.toFixed(1); }).join(', '),
+							'| Sources:', soundNodesArray.length);
+					}
 				}
 				if (pose && pose.orientation && pose.orientation.length >= 4) {
 					var o = pose.orientation;
@@ -511,5 +520,314 @@ var transformArray = [],
 
 	// Expose InitWebAudio globally for manual initialization if needed
 	window.InitWebAudio = InitiWebAudio;
+
+	// Reinitialize audio controller after dynamic shell loading (for verify-before-bind)
+	// Uses X_ITE scene graph API instead of DOM queries
+	window.reinitializeAudioController = function() {
+		console.log('Reinitializing audio controller for dynamically loaded shell...');
+		
+		// Clear previous arrays
+		transformArray.length = 0;
+		audioDestinationArray.length = 0;
+		listenerPointSourceArray.length = 0;
+		spatialSoundArray.length = 0;
+		gainArray.length = 0;
+		soundArray.length = 0;
+		audioClipArray.length = 0;
+		soundNodesArray.length = 0;
+		
+		// Get X_ITE canvas
+		var canvas = document.querySelector('x3d-canvas');
+		if (!canvas) {
+			console.error('reinitializeAudioController: Canvas not found');
+			return false;
+		}
+		
+		x3dCanvas = canvas;
+		x3dBrowser = canvas.browser;
+		
+		if (!x3dBrowser) {
+			console.error('reinitializeAudioController: X_ITE browser not found');
+			return false;
+		}
+		
+		// Wait for scene to be fully loaded, then search using X_ITE API
+		var attempts = 0;
+		var maxAttempts = 30;
+		
+		function trySearchAudioViaAPI() {
+			attempts++;
+			console.log('Searching for audio nodes via X_ITE API (getNamedNode), attempt', attempts);
+			
+			x3dScene = x3dBrowser.currentScene;
+			if (!x3dScene) {
+				if (attempts < maxAttempts) {
+					setTimeout(trySearchAudioViaAPI, 300);
+				} else {
+					console.warn('X_ITE scene not ready after', maxAttempts, 'attempts');
+				}
+				return false;
+			}
+			
+			// Use getNamedNode to find audio nodes by their DEF names
+			try {
+				// Try to get AudioDestination by DEF name
+				var audioDestNode = x3dScene.getNamedNode('MainAudioDestination');
+				if (audioDestNode) {
+					console.log('Found MainAudioDestination via getNamedNode!');
+					audioDestinationArray.push(audioDestNode);
+					
+					// Get SpatialSound nodes by DEF names
+					for (var i = 1; i <= 4; i++) {
+						var spatialNode = x3dScene.getNamedNode('SpatialSound' + i);
+						var gainNode = x3dScene.getNamedNode('Gain' + i);
+						var soundNode = x3dScene.getNamedNode('Sound' + i);
+						var audioClipNode = x3dScene.getNamedNode('AudioClip' + i);
+						
+						if (spatialNode) spatialSoundArray.push(spatialNode);
+						if (gainNode) gainArray.push(gainNode);
+						if (soundNode) soundArray.push(soundNode);
+						if (audioClipNode) audioClipArray.push(audioClipNode);
+					}
+					
+					console.log('Found via getNamedNode - AudioDestinations:', audioDestinationArray.length,
+						'SpatialSounds:', spatialSoundArray.length,
+						'Gains:', gainArray.length,
+						'Sounds:', soundArray.length,
+						'AudioClips:', audioClipArray.length);
+					
+					if (audioClipArray.length > 0) {
+						initializeWebAudioFromX3D();
+						main();
+						return true;
+					}
+				}
+			} catch(e) {
+				console.log('getNamedNode attempt', attempts, 'error:', e.message);
+			}
+			
+			if (attempts < maxAttempts) {
+				setTimeout(trySearchAudioViaAPI, 300);
+			} else {
+				console.warn('Audio nodes not found via getNamedNode after', maxAttempts, 'attempts');
+			}
+			return false;
+		}
+		
+		// Create Web Audio API nodes from X3D audio nodes
+		function initializeWebAudioFromX3D() {
+			console.log('Initializing Web Audio from X3D nodes...');
+			
+			for (var count = 0; count < audioClipArray.length; count++) {
+				var newAudioNode = new X3DSound();
+				newAudioNode.AudioClip = audioClipArray[count];
+				newAudioNode.ListenerPointSource = listenerPointSourceArray.length > 0 ? listenerPointSourceArray[0] : null;
+				newAudioNode.SpatialSound = spatialSoundArray[count];
+				newAudioNode.Gain = gainArray[count];
+				newAudioNode.AudioDestination = audioDestinationArray[0];
+				
+				// Create Panner node
+				if (newAudioNode.SpatialSound) {
+					newAudioNode.panner = context.createPanner();
+					
+					// Get attributes from X_ITE node using getField
+					var enableHRTF = getFieldValue(newAudioNode.SpatialSound, 'enableHRTF', true);
+					newAudioNode.panner.panningModel = enableHRTF ? 'HRTF' : 'equalpower';
+					
+					var distanceModel = getFieldValue(newAudioNode.SpatialSound, 'distanceModel', 'linear');
+					newAudioNode.panner.distanceModel = distanceModel;
+					
+					newAudioNode.panner.refDistance = getFieldValue(newAudioNode.SpatialSound, 'referenceDistance', 1);
+					newAudioNode.panner.maxDistance = getFieldValue(newAudioNode.SpatialSound, 'maxDistance', 2000);
+					newAudioNode.panner.rolloffFactor = getFieldValue(newAudioNode.SpatialSound, 'rolloffFactor', 2);
+					
+					var coneInnerAngle = getFieldValue(newAudioNode.SpatialSound, 'coneInnerAngle', 6.28319);
+					newAudioNode.panner.coneInnerAngle = radToDeg(coneInnerAngle);
+					
+					var coneOuterAngle = getFieldValue(newAudioNode.SpatialSound, 'coneOuterAngle', 6.28319);
+					newAudioNode.panner.coneOuterAngle = radToDeg(coneOuterAngle);
+					
+					newAudioNode.panner.coneOuterGain = getFieldValue(newAudioNode.SpatialSound, 'coneOuterGain', 0);
+					
+					// Set panner position from SpatialSound location
+					var location = getFieldValue(newAudioNode.SpatialSound, 'location', [0, 0, 0]);
+					if (location && location.length >= 3) {
+						newAudioNode.panner.setPosition(location[0], location[1], location[2]);
+					} else if (typeof location === 'object' && location.x !== undefined) {
+						newAudioNode.panner.setPosition(location.x, location.y, location.z);
+					}
+				}
+				
+				// Create Gain node
+				if (newAudioNode.Gain) {
+					newAudioNode.volume = context.createGain();
+					var gainValue = getFieldValue(newAudioNode.Gain, 'gain', 1);
+					newAudioNode.volume.gain.value = gainValue;
+				}
+				
+				// Create BufferSource
+				if (newAudioNode.AudioClip) {
+					newAudioNode.source = context.createBufferSource();
+					
+					var loop = getFieldValue(newAudioNode.AudioClip, 'loop', false);
+					newAudioNode.source.loop = loop;
+					
+					var pitch = getFieldValue(newAudioNode.AudioClip, 'pitch', 1);
+					newAudioNode.source.playbackRate.value = pitch;
+					
+					newAudioNode.resumeTime = 0;
+					newAudioNode.pauseTime = -1;
+					newAudioNode.isPaused = false;
+				}
+				
+				// Create analyser
+				newAudioNode.analyser = context.createAnalyser();
+				newAudioNode.analyser.fftSize = 256;
+				newAudioNode.analyserDataArray = new Uint8Array(newAudioNode.analyser.frequencyBinCount);
+				
+				// Connect: source -> volume -> analyser -> panner -> destination
+				newAudioNode.source.connect(newAudioNode.volume);
+				newAudioNode.volume.connect(newAudioNode.analyser);
+				newAudioNode.analyser.connect(newAudioNode.panner);
+				newAudioNode.panner.connect(context.destination);
+				
+				soundNodesArray.push(newAudioNode);
+				
+				// Load and decode audio
+				loadAudioForNode(newAudioNode, count);
+			}
+			
+			window.soundNodesArray = soundNodesArray;
+			console.log('Web Audio initialization complete, created', soundNodesArray.length, 'audio nodes');
+		}
+		
+		// Helper to get field value from X_ITE node
+		function getFieldValue(node, fieldName, defaultValue) {
+			try {
+				var field = node.getField(fieldName);
+				if (field) {
+					var val = field.getValue();
+					return val !== undefined ? val : defaultValue;
+				}
+			} catch(e) {}
+			
+			// Fallback to direct property access
+			if (node[fieldName] !== undefined) return node[fieldName];
+			if (node['_' + fieldName] !== undefined) return node['_' + fieldName];
+			
+			return defaultValue;
+		}
+		
+		// Helper to clean URL string from X_ITE (removes quotes and fixes relative paths)
+		function cleanAudioUrl(rawUrl) {
+			if (!rawUrl) return null;
+			
+			// Convert to string if it's an object
+			var url = String(rawUrl);
+			
+			// Remove surrounding quotes if present
+			url = url.replace(/^["']|["']$/g, '');
+			
+			// Fix relative path: shell.x3d uses ../sound/ but we're loading from root
+			// So ../sound/ should become sound/
+			if (url.startsWith('../')) {
+				url = url.substring(3); // Remove '../'
+			}
+			
+			return url;
+		}
+		
+		// Load audio file for a node
+		function loadAudioForNode(audioNode, index) {
+			var urlField = getFieldValue(audioNode.AudioClip, 'url', []);
+			if (!urlField || urlField.length === 0) {
+				console.warn('AudioClip', index + 1, 'has no URL');
+				return;
+			}
+			
+			// Get first URL from array and clean it
+			var rawUrl = Array.isArray(urlField) ? urlField[0] : urlField;
+			var url = cleanAudioUrl(rawUrl);
+			console.log('Loading audio', index + 1, ':', url);
+			
+			if (!url) {
+				console.error('Invalid URL for audio', index + 1);
+				return;
+			}
+			
+			var request = new XMLHttpRequest();
+			request.open('GET', url, true);
+			request.responseType = 'arraybuffer';
+			
+			request.onload = function() {
+				context.decodeAudioData(request.response,
+					function(buffer) {
+						audioNode.buffer = buffer;
+						audioNode.source.buffer = buffer;
+						console.log('Audio', index + 1, 'decoded, duration:', buffer.duration.toFixed(2), 'sec');
+						
+						if (context.state === 'suspended') {
+							audioNode.pendingStart = true;
+							console.log('Audio', index + 1, 'pending (AudioContext suspended)');
+						} else {
+							audioNode.source.start(context.currentTime);
+							console.log('Audio', index + 1, 'started');
+						}
+					},
+					function(err) {
+						console.error('Failed to decode audio', index + 1, ':', err);
+						// Try fallback URL if available
+						if (Array.isArray(urlField) && urlField.length > 1) {
+							loadFallbackAudio(audioNode, urlField[1], index);
+						}
+					}
+				);
+			};
+			
+			request.onerror = function() {
+				console.error('Failed to load audio', index + 1, ':', url);
+				if (Array.isArray(urlField) && urlField.length > 1) {
+					loadFallbackAudio(audioNode, urlField[1], index);
+				}
+			};
+			
+			request.send();
+		}
+		
+		// Load fallback audio URL
+		function loadFallbackAudio(audioNode, rawUrl, index) {
+			var url = cleanAudioUrl(rawUrl);
+			console.log('Trying fallback audio', index + 1, ':', url);
+			
+			if (!url) return;
+			
+			var request = new XMLHttpRequest();
+			request.open('GET', url, true);
+			request.responseType = 'arraybuffer';
+			
+			request.onload = function() {
+				context.decodeAudioData(request.response,
+					function(buffer) {
+						audioNode.buffer = buffer;
+						audioNode.source.buffer = buffer;
+						console.log('Fallback audio', index + 1, 'decoded');
+						if (context.state !== 'suspended') {
+							audioNode.source.start(context.currentTime);
+						} else {
+							audioNode.pendingStart = true;
+						}
+					},
+					function(err) {
+						console.error('Failed to decode fallback audio', index + 1);
+					}
+				);
+			};
+			request.send();
+		}
+		
+		// Start searching after a short delay to let scene load
+		setTimeout(trySearchAudioViaAPI, 500);
+		return true;
+	};
 
 })();

@@ -1,32 +1,102 @@
-## Project Title 
-Extending X3D Realism with Audio nodes
+# Decentralized Storage, Distribution and Verifiable Retrieval of X3D Spatial Audio Scenes
 
-## Exampes
-1. Exampe Split Channels: This X3D scene includes a simple sound source is inculded which can be moved right and left. Depending on the position of the sound source, the user can hear the produced sound from the corresponding output speaker.
-2. Example Filters: This X3D scene involves three sound sources. Each of them is visualized by a 3D object (in our case is a sphere) that depicts the sound effects. Specifically, we have added filters through of them we are able to manage the different sound effects in an impressive way. Filters can be composed of a number of attributes, frequency, detune, gain and the quality factor which also known as Q. Furthermore, the filters are classified in some specific types, depending on the sound effects that produce. In detail, there is the Low-pass filter which can create more muffled sound. Another one is the High-pass filter, which is used to generate tinny sound. Equally important is the Band-pass filter, which cuts off low and high frequencies and passes through only these within a certain range. On the contrary, the Notch filter has exactly the opposite operation of the Band-pass filter. Then is the Low-shelf filter, its role is to change the amount of bass in a sound, as a result the frequencies that are lower than the current frequency get a boost, while them that are over it remain unchanged. Next, the High-shelf filter is responsible for the quantity of treble in a sound. Moreover, Peaking filter is used in order to handle the amount of midrange in a sound. Lastly, there is the All-pass filter, whose role is to introduce phaser effects.
-3. Example Spatial Audio Camera Animation: In this X3D scene, there are two sound sources in different positions. Through the immersion in the X3D scene the user could attend a rational navigation. Whenever the camera moves in the direction of an existing sound source, the strength of this source increases, while the sound strength of the other (the second one) decreases and vice versa. Through this process, great realism of the scene is achieved, since it emulates the spatial sound in real world.
+This repository contains the implementation for the Web3D 2026 paper demonstrating blockchain-anchored integrity verification for X3D 4.0 spatial audio scenes.
 
-## Files
-1. Exampe Split Channels:
-- SplitChannels.xhtml: HTML  DOM. It is  essentially  an  X3D  scene,  directly  from  the X3DOM and no through JavaScript structure.
-- soundController_SplitChannels.js:  JavaScript  Controller interacts with the HTML file, for the purpose of parsing the 3D scene and being updated on any potential change in the scene.
+## Overview
 
-2. Example Filters:
-- SpatialSoundFilter.xhtml: HTML  DOM. It is  essentially  an  X3D  scene,  directly  from  the X3DOM and no through JavaScript structure.
-- soundController_SpatialSoundFilter.js:  JavaScript  Controller interacts with the HTML file, for the purpose of parsing the 3D scene and being updated on any potential change in the scene.
+The system implements a **verify-before-bind** progressive loading mechanism that ensures all scene content is cryptographically verified before being mounted into the X_ITE scene graph. Key features:
 
-3. Example Spatial Audio Camera Animation:
+- **Decentralized Storage**: Scene chunks stored on IPFS with content-addressed retrieval
+- **Blockchain Anchoring**: Root CID anchored on Ethereum Sepolia via ManifestAnchor smart contract
+- **SHA-256 Verification**: Per-chunk cryptographic integrity verification
+- **Progressive LOD**: Two-tier Level of Detail (LOD0/LOD1) streaming
+- **X3D 4.0 Spatial Audio**: Full Audio Graph with SpatialSound, Gain, and AudioClip nodes
 
-- SpatialAudioCameraAnimation.xhtml: HTML  DOM. It is  essentially  an  X3D  scene,  directly  from  the X3DOM and no through JavaScript structure.
-- soundController_SpatialAudioCameraAnimation.js:  JavaScript  Controller interacts with the HTML file, for the purpose of parsing the 3D scene and being updated on any potential change in the scene.
+## Project Structure
 
-4. **Multi-Source Spatial Audio Navigation Scene** (X_ITE):
+```
+├── verify.html                    # Verification gateway (blockchain + shell verification)
+├── MultiSourceSpatialAudioNavigationScene_Streamed.xhtml  # Main scene (verify-before-bind)
+├── MultiSourceSpatialAudioNavigationScene_XITE.xhtml      # Baseline scene (no verification)
+├── benchmark.html                 # Performance benchmarking tool
+├── architecture-diagram.html      # System architecture diagram
+├── index.html                     # Entry point
+│
+├── scenes/
+│   ├── manifest.json              # Chunk manifest with SHA-256 hashes
+│   ├── shell.x3d                  # Scene shell (environment, audio graph, navigation)
+│   └── sources/                   # LOD0/LOD1 geometry chunks
+│
+├── sound/                         # Audio assets
+├── js/                            # JavaScript libraries
+├── scripts/                       # Build scripts (manifest generation)
+└── soundController_*.js           # Audio synchronization controllers
+```
 
-- MultiSourceSpatialAudioNavigationScene_XITE.xhtml: Four spatial audio sources, automated camera tour, live audio statistics, vis.js node graph.
-- soundController_MultiSourceSpatialAudioNavigationScene_XITE.js: Web Audio / X3D spatial sound controller for X_ITE.
-- scenes/: Chunked X3D files and manifest.json for IPFS / verifiable streaming (paper prototype).
+## Demo Pages
 
-5. SpatialSound.js: The registration of all new nodes in X3DOM.
+| Page | Description |
+|------|-------------|
+| `verify.html` | **Start here.** Verification gateway that validates blockchain CID and shell integrity before entering the scene. |
+| `MultiSourceSpatialAudioNavigationScene_Streamed.xhtml` | Main scene with full verify-before-bind pipeline. Loads verified shell and LOD0 chunks. |
+| `MultiSourceSpatialAudioNavigationScene_XITE.xhtml` | Baseline scene without verification (for comparison). |
+| `benchmark.html` | Performance comparison tool measuring load times and SHA-256 overhead. |
 
-## Run
-It requires a local server. Open **MultiSourceSpatialAudioNavigationScene_XITE.xhtml** for the main demo, or index.html for all examples.
+## Architecture
+
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
+│  BUILD PIPELINE │ ──→ │ DECENTRALIZED STORAGE│ ──→ │   CLIENT BROWSER    │
+│                 │     │                      │     │                     │
+│ X3D 4.0 Scene   │     │ IPFS (Pinata)        │     │ Query Blockchain    │
+│ X_ITE Runtime   │     │ Content-Addressed    │     │ Fetch & Verify      │
+│ LOD Chunking    │     │ Ethereum Sepolia     │     │ Progressive Load    │
+└─────────────────┘     └──────────────────────┘     └─────────────────────┘
+
+Trust chain: Blockchain → IPFS CID → Manifest → SHA-256 → Verified Scene
+```
+
+## Smart Contract
+
+**ManifestAnchor** deployed on Sepolia Testnet:
+- **Address**: `0xeb62afe54b4805eaec777b99d66959798afb9f76`
+- **Root CID**: `bafybeiezii7usczjpsu3wcil52rdua5ef7j4k75fisrjqmto77z2ctrvvu`
+
+## Running Locally
+
+1. Serve from a local web server (e.g., XAMPP, Apache, or `python -m http.server`)
+2. Open `verify.html` to start with blockchain verification
+3. Or open `MultiSourceSpatialAudioNavigationScene_XITE.xhtml` for baseline (no verification)
+
+## Benchmarking
+
+Open `benchmark.html` to compare:
+- **Baseline**: Direct loading without verification
+- **Proposed**: Full verify-before-bind pipeline
+
+Measured metrics:
+- Time to First Geometry
+- Total Load Time
+- SHA-256 Overhead per chunk
+- Blockchain Query Latency
+
+## Technologies
+
+- **X3D 4.0** — Declarative 3D with spatial audio nodes
+- **X_ITE** — WebGL-based X3D browser
+- **W3C Web Audio API** — Spatial audio rendering
+- **IPFS** — Content-addressed decentralized storage
+- **Ethereum** — On-chain manifest anchoring
+- **ethers.js** — Blockchain interaction
+
+## Authors
+
+- Eftychia Lakka — Hellenic Mediterranean University
+- Chrysoula Tzermia — Hellenic Mediterranean University
+- Don Brutzman — Naval Postgraduate School
+- Athanasios G. Malamos — Hellenic Mediterranean University
+- Evangelos K. Markakis — Hellenic Mediterranean University
+
+## License
+
+MIT License

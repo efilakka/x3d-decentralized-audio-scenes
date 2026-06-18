@@ -21,50 +21,50 @@
       set_bind="true"
       jump="true" />
 
-    <AudioDestination channelInterpretation="speakers">
-      <SpatialSound description="SpatialSound1 - The Caves of Moria" location="-600 0 -600"
+    <AudioDestination DEF="MainAudioDestination" channelInterpretation="speakers">
+      <SpatialSound DEF="SpatialSound1" description="SpatialSound1 - The Caves of Moria" location="-600 0 -600"
         direction="1 0 0" coneInnerAngle="6.28319" coneOuterAngle="6.28319" coneOuterGain="0"
         distanceModel="linear" maxDistance="2000" enableHRTF="true" referenceDistance="1" rolloffFactor="2">
-        <Gain description="Gain1" gain="0.8">
-          <Sound location="0 0 0">
-            <AudioClip description="The Caves of Moria" loop="true"
-              url='"sound/lordOftheRings/the-caves-of-moria-460016.mp3" "sound/violin.mp3" "sound/violin.wav"'
+        <Gain DEF="Gain1" description="Gain1" gain="0.8">
+          <Sound DEF="Sound1" location="0 0 0">
+            <AudioClip DEF="AudioClip1" description="The Caves of Moria" loop="true"
+              url='"../sound/lordOftheRings/the-caves-of-moria-460016.mp3" "../sound/violin.mp3" "../sound/violin.wav"'
               pauseTime="-1" resumeTime="-1" stopTime="-1" pitch="1" />
           </Sound>
         </Gain>
       </SpatialSound>
 
-      <SpatialSound description="SpatialSound2 - The Caves of Khazad-dum" location="600 0 -600"
+      <SpatialSound DEF="SpatialSound2" description="SpatialSound2 - The Caves of Khazad-dum" location="600 0 -600"
         direction="1 0 0" coneInnerAngle="6.28319" coneOuterAngle="6.28319" coneOuterGain="0"
         distanceModel="linear" maxDistance="2000" enableHRTF="true" referenceDistance="1" rolloffFactor="2">
-        <Gain description="Gain2" gain="0.7">
-          <Sound location="0 0 0">
-            <AudioClip description="The Caves of Khazad-dum" loop="true"
-              url='"sound/lordOftheRings/the-caves-of-khazad-dum-314281.mp3" "sound/beat.mp3" "sound/beat.wav"'
+        <Gain DEF="Gain2" description="Gain2" gain="0.7">
+          <Sound DEF="Sound2" location="0 0 0">
+            <AudioClip DEF="AudioClip2" description="The Caves of Khazad-dum" loop="true"
+              url='"../sound/lordOftheRings/the-caves-of-khazad-dum-314281.mp3" "../sound/beat.mp3" "../sound/beat.wav"'
               pauseTime="-1" resumeTime="-1" stopTime="-1" pitch="1" />
           </Sound>
         </Gain>
       </SpatialSound>
 
-      <SpatialSound description="SpatialSound3 - Tales of Samwise Gamgee" location="-600 0 600"
+      <SpatialSound DEF="SpatialSound3" description="SpatialSound3 - Tales of Samwise Gamgee" location="-600 0 600"
         direction="1 0 0" coneInnerAngle="6.28319" coneOuterAngle="6.28319" coneOuterGain="0"
         distanceModel="linear" maxDistance="2000" enableHRTF="true" referenceDistance="1" rolloffFactor="2">
-        <Gain description="Gain3" gain="0.75">
-          <Sound location="0 0 0">
-            <AudioClip description="Tales of Samwise Gamgee" loop="true"
-              url='"sound/lordOftheRings/the-tales-of-samwise-gamgee-339193.mp3" "sound/techno_beat.mp3" "sound/techno_beat.wav"'
+        <Gain DEF="Gain3" description="Gain3" gain="0.75">
+          <Sound DEF="Sound3" location="0 0 0">
+            <AudioClip DEF="AudioClip3" description="Tales of Samwise Gamgee" loop="true"
+              url='"../sound/lordOftheRings/the-tales-of-samwise-gamgee-339193.mp3" "../sound/techno_beat.mp3" "../sound/techno_beat.wav"'
               pauseTime="-1" resumeTime="-1" stopTime="-1" pitch="1" />
           </Sound>
         </Gain>
       </SpatialSound>
 
-      <SpatialSound description="SpatialSound4 - The Glory of Gondor" location="600 0 600"
+      <SpatialSound DEF="SpatialSound4" description="SpatialSound4 - The Glory of Gondor" location="600 0 600"
         direction="1 0 0" coneInnerAngle="6.28319" coneOuterAngle="6.28319" coneOuterGain="0"
         distanceModel="linear" maxDistance="2000" enableHRTF="true" referenceDistance="1" rolloffFactor="2">
-        <Gain description="Gain4" gain="0.8">
-          <Sound location="0 0 0">
-            <AudioClip description="The Glory of Gondor" loop="true"
-              url='"sound/lordOftheRings/the-glory-of-gondor-435113.mp3" "sound/saxophone.mp3" "sound/saxophone.wav"'
+        <Gain DEF="Gain4" description="Gain4" gain="0.8">
+          <Sound DEF="Sound4" location="0 0 0">
+            <AudioClip DEF="AudioClip4" description="The Glory of Gondor" loop="true"
+              url='"../sound/lordOftheRings/the-glory-of-gondor-435113.mp3" "../sound/saxophone.mp3" "../sound/saxophone.wav"'
               pauseTime="-1" resumeTime="-1" stopTime="-1" pitch="1" />
           </Sound>
         </Gain>

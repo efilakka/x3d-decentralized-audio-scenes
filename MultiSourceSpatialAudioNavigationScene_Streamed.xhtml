@@ -6,7 +6,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<meta name="description" content="Multi-Source Spatial Audio Navigation Scene — Streamed with Verify-Before-Bind" />
-	<title>Multi-Source Spatial Audio Navigation Scene — Streamed</title>
+	<title>Decentralized Storage, Distribution and Verifiable Retrieval of X3D Spatial Audio Scenes</title>
 
 	<script defer="defer" src="https://cdn.jsdelivr.net/npm/x_ite@14.0.0/dist/x_ite.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
@@ -146,8 +146,24 @@
 		
 	// Store blob URLs for cleanup
 	var blobUrls = {};
+	// Track which chunks are already loaded to avoid double-loading
+	var mountedChunks = {};
+	
+	// Expose reset function for external use
+	function resetMountedChunks() {
+		mountedChunks = {};
+		blobUrls = {};
+	}
+	window.VerifiedSceneLoader = window.VerifiedSceneLoader || {};
+	window.VerifiedSceneLoader.resetMountedChunks = resetMountedChunks;
 	
 	async function mountChunk(canvas, mountDef, sculptureDef, chunkPath, verified) {
+		// Skip if already mounted
+		if (mountedChunks[sculptureDef]) {
+			console.log('mountChunk:', sculptureDef, '- already mounted, skipping');
+			return { mounted: true, sculptureDef: sculptureDef, chunkPath: chunkPath, skipped: true };
+		}
+		
 		console.log('mountChunk:', sculptureDef);
 		var browser = canvas.browser;
 		var scene = browser.currentScene;
@@ -172,6 +188,9 @@
 			// Update URL to verified blob and enable loading
 			inlineNode.url = [blobUrl];
 			inlineNode.load = true;
+			
+			// Mark as mounted to prevent double-loading
+			mountedChunks[sculptureDef] = true;
 			
 			console.log('  Inline node activated with blob URL');
 			return { mounted: true, sculptureDef: sculptureDef, chunkPath: chunkPath };
@@ -500,15 +519,14 @@
 	<a class="back-link" href="verify.html">← Verification</a>
 	<h1>Multi-Source Spatial Audio Navigation Scene</h1>
 	<p class="page-hero-sub">Verify-Before-Bind · Progressive LOD · On-Chain Integrity</p>
-	<p class="page-hero-authors">Lakka · Tzermia · Brutzman · Malamos &mdash; HMU / NPS</p>
+	<p class="page-hero-authors">Web3D 2026 Conference — Proof of Concept Demo</p>
 </header>
 
 <div class="page-layout">
 	<section class="scene-block">
-		<!-- Minimal scene — shell.x3d injected via blob URL after blockchain + SHA-256 verification -->
+		<!-- Canvas starts empty — shell.x3d loaded after blockchain + SHA-256 verification -->
 		<x3d-canvas class="scene-canvas" id="x3dCanvas" profile='Full' version='4.0'
 			update='auto' contentScale='auto'>
-			<X3D profile='Full' version='4.0'><Scene></Scene></X3D>
 		</x3d-canvas>
 		<div class="scene-controls">
 			<button id="startButton" disabled="disabled">Step 1/4: Querying blockchain...</button>
@@ -557,6 +575,11 @@
 
 		<h3 style="margin-top:20px;">LOD Upgrade</h3>
 		<div class="lod-buttons" id="lodButtons"></div>
+
+		<h3 style="margin-top:20px;">Spatial Audio</h3>
+		<div id="spatialDebugOverlay" style="font-size:11px; line-height:1.4; background:rgba(0,0,0,0.3); padding:8px; border-radius:4px;">
+			<em>Audio not started</em>
+		</div>
 	</aside>
 </div>
 
@@ -672,12 +695,117 @@
 		});
 	}
 
+	// ══════════════════════════════════════════════════════════════════════════
+	// SPATIAL AUDIO: Camera pose helpers for listener position updates
+	// ══════════════════════════════════════════════════════════════════════════
+	function xiteVec3ToArray(v) {
+		if (v == null) return null;
+		if (typeof v.x === 'number' && typeof v.y === 'number' && typeof v.z === 'number') {
+			return [v.x, v.y, v.z];
+		}
+		if (typeof v.toString === 'function') {
+			var parts = v.toString().trim().split(/[\s,]+/).map(parseFloat).filter(function(n) { return !isNaN(n); });
+			if (parts.length >= 3) return parts.slice(0, 3);
+		}
+		return null;
+	}
+
+	function xiteRotationToArray(r) {
+		if (r == null) return null;
+		if (typeof r.x === 'number') {
+			var angle = (typeof r.angle === 'number') ? r.angle : 0;
+			return [r.x, r.y, r.z, angle];
+		}
+		if (typeof r.toString === 'function') {
+			var rparts = r.toString().trim().split(/[\s,]+/).map(parseFloat).filter(function(n) { return !isNaN(n); });
+			if (rparts.length >= 4) return rparts.slice(0, 4);
+		}
+		return null;
+	}
+
+	function getGalleryCameraPose(canvas) {
+		var result = { position: null, orientation: [0, 0, 1, 0] };
+		if (!canvas) return result;
+		try {
+			var browser = canvas.browser;
+			if (browser && browser.currentScene) {
+				var vp = null;
+				try {
+					vp = browser.currentScene.getNamedNode('GalleryViewpoint');
+				} catch(e) {}
+				if (!vp && browser.activeViewpoint) {
+					vp = browser.activeViewpoint;
+				}
+				if (vp) {
+					var pos = xiteVec3ToArray(vp.position);
+					var ori = xiteRotationToArray(vp.orientation);
+					if (pos) result.position = pos;
+					if (ori) result.orientation = ori;
+				}
+			}
+		} catch (e) { /* ignore */ }
+		return result;
+	}
+	window.getGalleryCameraPose = getGalleryCameraPose;
+
+	// Spatial audio debug overlay - shows listener position and source distances
+	var spatialDebugInterval = null;
+	function startSpatialDebug() {
+		var overlay = document.getElementById('spatialDebugOverlay');
+		if (!overlay) return;
+		
+		// Source positions from shell.x3d
+		var sourcePositions = [
+			{ name: 'Source 1 (Caves of Moria)', pos: [-600, 0, -600], color: '#ff8000' },
+			{ name: 'Source 2 (Khazad-dum)', pos: [600, 0, -600], color: '#33ccff' },
+			{ name: 'Source 3 (Samwise)', pos: [-600, 0, 600], color: '#33ff33' },
+			{ name: 'Source 4 (Gondor)', pos: [600, 0, 600], color: '#ff33cc' }
+		];
+		
+		spatialDebugInterval = setInterval(function() {
+			var pose = getGalleryCameraPose(canvas);
+			var listenerPos = pose.position || [0, 0, 0];
+			
+			var html = '<div style="margin-bottom:8px;"><strong>Listener:</strong> ' +
+				listenerPos.map(function(v) { return v.toFixed(0); }).join(', ') + '</div>';
+			
+			// Calculate distances and find closest
+			var distances = sourcePositions.map(function(src) {
+				var dx = listenerPos[0] - src.pos[0];
+				var dy = listenerPos[1] - src.pos[1];
+				var dz = listenerPos[2] - src.pos[2];
+				return Math.sqrt(dx*dx + dy*dy + dz*dz);
+			});
+			
+			var minDist = Math.min.apply(null, distances);
+			
+			sourcePositions.forEach(function(src, i) {
+				var dist = distances[i];
+				var isClosest = dist === minDist;
+				var barWidth = Math.max(5, Math.min(100, 100 * (2000 - dist) / 2000));
+				
+				html += '<div style="margin:4px 0;' + (isClosest ? 'font-weight:bold;' : '') + '">' +
+					'<span style="color:' + src.color + '">●</span> ' +
+					src.name + ': <strong>' + dist.toFixed(0) + '</strong>' +
+					(isClosest ? ' ◄ CLOSEST' : '') +
+					'<div style="background:' + src.color + ';height:4px;width:' + barWidth + '%;opacity:0.7;margin-top:2px;"></div>' +
+					'</div>';
+			});
+			
+			overlay.innerHTML = html;
+		}, 200);
+	}
+	window.startSpatialDebug = startSpatialDebug;
+
 	async function init() {
 		startBtn.disabled = true;
 		bcBtn.disabled = true;
 		chunkListEl.innerHTML = '';
 		lodButtonsEl.innerHTML = '';
 		loadedChunks = {}; totalBytes = 0; verifiedCount = 0; totalChunks = 0;
+		if (window.VerifiedSceneLoader && window.VerifiedSceneLoader.resetMountedChunks) {
+			window.VerifiedSceneLoader.resetMountedChunks();
+		}
 
 		// ── PHASE 1: Blockchain verification ────────────────────────────────
 		// Check if already verified on the gateway page (verify.html) via sessionStorage.
@@ -781,15 +909,13 @@
 			return;
 		}
 
-		// Revoke any previous shell blob
-		if (shellBlobUrl) { URL.revokeObjectURL(shellBlobUrl); }
-		var shellBlob = new Blob([verifiedShell.buffer], { type: 'model/x3d+xml' });
-		shellBlobUrl = URL.createObjectURL(shellBlob);
-
-		// Inject verified shell into the canvas — triggers X_ITE scene reload
-		canvas.setAttribute('src', shellBlobUrl);
+		// Shell verified! Now load it via normal URL (not blob) so DOM queries work for audio
+		// Note: We already verified the hash, so loading by URL is safe
 		updateMetric('metricShell', verifiedShell.loadMs.toFixed(0) + ' ms ✓');
-		console.log('Shell SHA-256 verified ✓ — injected into canvas via blob URL');
+		console.log('Shell SHA-256 verified ✓ — loading via URL');
+		
+		// Load shell using normal URL path (enables DOM parsing for audio nodes)
+		canvas.setAttribute('src', 'scenes/shell.x3d');
 
 		// Wait until a shell-specific node (GalleryViewpoint) appears in the scene.
 		// waitForBrowser is NOT enough here — the empty minimal scene already has currentScene,
@@ -801,6 +927,17 @@
 			startBtn.textContent = 'Error: shell did not load in time';
 			console.error('Shell load timeout:', err);
 			return;
+		}
+
+		// Reinitialize audio controller now that shell is loaded
+		if (window.reinitializeAudioController) {
+			console.log('Reinitializing audio controller for verified shell...');
+			window.reinitializeAudioController();
+		}
+		
+		// Start spatial audio debug overlay
+		if (window.startSpatialDebug) {
+			setTimeout(window.startSpatialDebug, 1000);
 		}
 
 		updateMetric('metricVerified', '0 / ' + totalChunks);
