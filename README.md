@@ -89,6 +89,17 @@ Measured metrics:
 - **Ethereum** — On-chain manifest anchoring
 - **ethers.js** — Blockchain interaction
 
+## Audio Assets
+
+The spatial audio demonstration uses royalty-free music tracks from [Pixabay](https://pixabay.com/music/) by **TokyoRifft**, licensed under the [Pixabay Content License](https://pixabay.com/service/license-summary/):
+
+| Track | URL |
+|-------|-----|
+| The Caves of Moria | https://pixabay.com/music/ambient-the-caves-of-moria-460016/ |
+| The Caves of Khazad-dum | https://pixabay.com/music/ambient-the-caves-of-khazad-dum-314281/ |
+| The Tales of Samwise Gamgee | https://pixabay.com/music/ambient-the-tales-of-samwise-gamgee-339193/ |
+| The Glory of Gondor | https://pixabay.com/music/ambient-the-glory-of-gondor-435113/ |
+
 ## License
 
 MIT License
