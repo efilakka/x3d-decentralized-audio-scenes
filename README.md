@@ -89,14 +89,6 @@ Measured metrics:
 - **Ethereum** — On-chain manifest anchoring
 - **ethers.js** — Blockchain interaction
 
-## Authors
-
-- Eftychia Lakka — Hellenic Mediterranean University
-- Chrysoula Tzermia — Hellenic Mediterranean University
-- Don Brutzman — Naval Postgraduate School
-- Athanasios G. Malamos — Hellenic Mediterranean University
-- Evangelos K. Markakis — Hellenic Mediterranean University
-
 ## License
 
 MIT License
